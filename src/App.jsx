@@ -8,6 +8,9 @@ import MainLayout from "./layout/dashboard";
 // Pages
 import Dashboard from "./pages/dashboard";
 import NewBaby from "./pages/baby";
+import Born from "./pages/born";
+import Users from "./pages/users";
+import HealthCenter from "./pages/healthcenter";
 // import ViewDetails from "./pages/ViewDetails";
 import Login from "./pages/login";
 import NotFound from "./pages/notfound";
@@ -16,8 +19,8 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   useEffect(() => {
-    const username = Cookies.get("username");
-    const institution = Cookies.get("institution");
+    const username = Cookies.get("email");
+    const institution = Cookies.get("role");
     
     if (username && institution) {
       setIsAuthenticated(true);
@@ -41,10 +44,37 @@ function App() {
           )
         } />
         
-        <Route path="/new-baby" element={
+        <Route path="/borns" element={
           isAuthenticated ? (
             <MainLayout>
               <NewBaby />
+            </MainLayout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        } />
+        <Route path="/users" element={
+          isAuthenticated ? (
+            <MainLayout>
+              <Users />
+            </MainLayout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        } />
+        <Route path="/healthcenter" element={
+          isAuthenticated ? (
+            <MainLayout>
+              <HealthCenter />
+            </MainLayout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        } />
+        <Route path="/babies" element={
+          isAuthenticated ? (
+            <MainLayout>
+              <Born />
             </MainLayout>
           ) : (
             <Navigate to="/login" />

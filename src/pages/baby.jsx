@@ -1,769 +1,1255 @@
-"use client"
+import { useState, useEffect } from "react";
+import { 
+  Search, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  X, 
+  Check, 
+  AlertTriangle,
+  Save,
+  Baby
+} from "lucide-react";
+import Swal from 'sweetalert2';
+import axios from "axios";
+import Cookies from "js-cookie";
 
-import { useState } from "react"
-import { Baby, Search, PlusCircle, Filter, X, User, ChevronDown, ChevronUp } from "lucide-react"
-
-function NewBaby() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [showFilters, setShowFilters] = useState(false)
-  const [showModal, setShowModal] = useState(false)
-  const [filters, setFilters] = useState({
-    status: { all: true, discharged: false, inCare: false, nicu: false },
-    gender: { all: true, male: false, female: false },
-    date: { today: false, thisWeek: true, thisMonth: false, custom: false },
-  })
-
-  const [newBabyData, setNewBabyData] = useState({
+const BornPage = () => {
+  const [borns, setBorns] = useState([]);
+  const [filteredBorns, setFilteredBorns] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortByDate, setSortByDate] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Address data states
+  const [sectors, setSectors] = useState([]);
+  const [cells, setCells] = useState([]);
+  const [villages, setVillages] = useState([]);
+  const [healthCenters, setHealthCenters] = useState([]);
+  
+  // Modal states
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [currentBorn, setCurrentBorn] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    dateOfBirth: new Date().toISOString().split('T')[0],
+    healthCenterId: "",
     motherName: "",
-    motherAge: "",
+    motherPhone: "",
+    motherNationalId: "",
+    fatherNationalId: "",
     fatherName: "",
-    fatherAge: "",
-    address: "",
-    phone: "",
-    email: "",
-    babyName: "",
-    gender: "",
-    birthDate: "",
-    birthTime: "",
-    weight: "",
-    height: "",
-    bloodType: "",
+    fatherPhone: "",
+    babyCount: 1,
     deliveryType: "Normal",
-    notes: "",
-  })
-
-  // Sample data for the baby records
-  const babyRecords = [
-    {
-      id: 1,
-      babyName: "Baby Smith",
-      motherName: "Emma Smith",
-      gender: "Female",
-      birthDate: "2023-03-15",
-      birthTime: "08:45",
-      weight: "3.2",
-      status: "Discharged",
-      doctor: "Dr. Johnson",
-    },
-    {
-      id: 2,
-      babyName: "Baby Garcia",
-      motherName: "Sophia Garcia",
-      gender: "Male",
-      birthDate: "2023-03-14",
-      birthTime: "14:30",
-      weight: "3.5",
-      status: "In Care",
-      doctor: "Dr. Williams",
-    },
-    {
-      id: 3,
-      babyName: "Baby Martinez",
-      motherName: "Olivia Martinez",
-      gender: "Female",
-      birthDate: "2023-03-14",
-      birthTime: "10:15",
-      weight: "2.9",
-      status: "NICU",
-      doctor: "Dr. Brown",
-    },
-    {
-      id: 4,
-      babyName: "Baby Johnson",
-      motherName: "Isabella Johnson",
-      gender: "Male",
-      birthDate: "2023-03-13",
-      birthTime: "16:20",
-      weight: "3.7",
-      status: "Discharged",
-      doctor: "Dr. Davis",
-    },
-    {
-      id: 5,
-      babyName: "Baby Williams",
-      motherName: "Ava Williams",
-      gender: "Female",
-      birthDate: "2023-03-12",
-      birthTime: "09:50",
-      weight: "3.1",
-      status: "Discharged",
-      doctor: "Dr. Miller",
-    },
-  ]
-
-  const handleFilterChange = (category, item) => {
-    if (item === "all") {
-      setFilters({
-        ...filters,
-        [category]: Object.keys(filters[category]).reduce((acc, key) => {
-          acc[key] = key === "all"
-          return acc
-        }, {}),
-      })
-    } else {
-      const newFilters = {
-        ...filters,
-        [category]: { ...filters[category], [item]: !filters[category][item], all: false },
+    leave: "yes",
+    status: "go home",
+    sector_id: "",
+    cell_id: "",
+    village_id: "",
+    babies: [
+      {
+        name: "",
+        gender: "Male",
+        birthWeight: 0,
+        dischargebirthWeight: 0,
+        medications: []
       }
+    ],
+  });
 
-      // If no specific filters are selected, set 'all' back to true
-      const hasActiveFilters = Object.keys(newFilters[category])
-        .filter((key) => key !== "all")
-        .some((key) => newFilters[category][key])
+  // Setup axios instance with token
+  const API_URL = "https://digitalbackend-uobz.onrender.com/api/v1/borns";
+  const token = Cookies.get("token");
+  const axiosInstance = axios.create({
+    baseURL: API_URL,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : "",
+    },
+  });
 
-      if (!hasActiveFilters) {
-        newFilters[category].all = true
-      }
+  // Fetch all data on component mount
+  useEffect(() => {
+    fetchBorns();
+    fetchAddressData();
+    fetchHealthCenters();
+  }, []);
 
-      setFilters(newFilters)
+  // Fetch all born records
+  const fetchBorns = async () => {
+    try {
+      setIsLoading(true);
+      const { data } = await axiosInstance.get("/");
+      setBorns(data || []);
+      setFilteredBorns(data || []);
+    } catch (err) {
+      showAlert('error', err.response?.data?.message || err.message);
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setNewBabyData({ ...newBabyData, [name]: value })
-  }
+  // Fetch address data (sectors, cells, villages)
+  const fetchAddressData = async () => {
+    try {
+      const response = await axios.get('https://digitalbackend-uobz.onrender.com/api/v1/address/', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      const data = response.data;
+      const sectorsData = [];
+      
+      if (data?.data?.length) {
+        data.data.forEach((province) => {
+          province.districts?.forEach((district) => {
+            district.sectors?.forEach((sector) => {
+              sectorsData.push({
+                id: sector.id,
+                name: sector.name,
+                cells: sector.cells || []
+              });
+            });
+          });
+        });
+      }
+      
+      setSectors(sectorsData);
+      
+      // If there are sectors, get cells from first sector by default
+      if (sectorsData.length > 0) {
+        const firstSector = sectorsData[0];
+        setCells(firstSector.cells || []);
+        
+        // If there are cells, get villages from first cell by default
+        if (firstSector.cells.length > 0) {
+          setVillages(firstSector.cells[0].villages || []);
+        }
+      }
+    } catch (err) {
+      showAlert('error', err.response?.data?.message || err.message);
+    }
+  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    showAlert("Success!", "New baby record has been added successfully.", "success")
-    setNewBabyData({
+  // Fetch health centers
+  const fetchHealthCenters = async () => {
+    try {
+      const response = await axios.get(
+        'https://digitalbackend-uobz.onrender.com/api/v1/healthcenters',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setHealthCenters(response.data || []);
+    } catch (err) {
+      showAlert('error', err.response?.data?.message || err.message);
+    }
+  };
+
+  // Handle sector change
+  const handleSectorChange = (e) => {
+    const sectorId = e.target.value;
+    const selectedSector = sectors.find(s => s.id == sectorId);
+    const sectorCells = selectedSector?.cells || [];
+    
+    setCells(sectorCells);
+    setVillages([]);
+    
+    setFormData({
+      ...formData,
+      sector_id: sectorId,
+      cell_id: "",
+      village_id: ""
+    });
+  };
+
+  // Handle cell change
+  const handleCellChange = (e) => {
+    const cellId = e.target.value;
+    const selectedCell = cells.find(c => c.id == cellId);
+    const cellVillages = selectedCell?.villages || [];
+    
+    setVillages(cellVillages);
+    
+    setFormData({
+      ...formData,
+      cell_id: cellId,
+      village_id: ""
+    });
+  };
+
+  // Handle village change
+  const handleVillageChange = (e) => {
+    setFormData({
+      ...formData,
+      village_id: e.target.value
+    });
+  };
+
+  // Handle search
+  const handleSearch = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (value.trim() === '') {
+      setFilteredBorns(borns);
+    } else {
+      const filtered = borns.filter(born => 
+        born.motherName.toLowerCase().includes(value.toLowerCase()) ||
+        (born.babies && born.babies.some(baby => 
+          baby.name.toLowerCase().includes(value.toLowerCase())
+        )
+      ));
+      setFilteredBorns(filtered);
+    }
+  };
+
+  // Create new born record
+  const createBorn = async () => {
+    try {
+      setIsLoading(true);
+      await axiosInstance.post("/", formData);
+      await fetchBorns();
+      setIsAddModalOpen(false);
+      resetForm();
+      showAlert('success', 'Born record added successfully');
+    } catch (err) {
+      showAlert('error', err.response?.data?.message || err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update born record
+  const updateBorn = async () => {
+    if (!currentBorn?.id) return;
+    try {
+      setIsLoading(true);
+      const dataToSend = {
+        ...formData,
+        babies: formData.babies.map(baby => ({
+          ...baby,
+          medications: baby.medications || []
+        }))
+      };
+      
+      await axiosInstance.put(`/${currentBorn.id}`, dataToSend);
+      await fetchBorns();
+      setIsEditMode(false);
+      setIsViewModalOpen(false);
+      showAlert('success', 'Born record updated successfully');
+    } catch (err) {
+      showAlert('error', err.response?.data?.message || err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Delete born record
+  const deleteBorn = async () => {
+    if (!currentBorn?.id) return;
+    try {
+      setIsLoading(true);
+      await axiosInstance.delete(`/${currentBorn.id}`);
+      await fetchBorns();
+      setIsDeleteModalOpen(false);
+      setIsViewModalOpen(false);
+      setCurrentBorn(null);
+      showAlert('success', 'Born record deleted successfully');
+    } catch (err) {
+      showAlert('error', err.response?.data?.message || err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle view details
+  const handleViewDetails = async (born) => {
+    try {
+      setIsLoading(true);
+      const { data } = await axiosInstance.get(`/${born.id}`);
+      
+      const normalizedData = {
+        ...data,
+        babies: data.babies || [{
+          name: "",
+          gender: "Male",
+          birthWeight: 0,
+          dischargebirthWeight: 0,
+          medications: []
+        }],
+        medications: data.medications || []
+      };
+      
+      setCurrentBorn(normalizedData);
+      setFormData(normalizedData);
+      setIsViewModalOpen(true);
+      setIsEditMode(false);
+    } catch (err) {
+      showAlert('error', err.response?.data?.message || err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = (born) => {
+    setCurrentBorn(born);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Reset form to default values
+  const resetForm = () => {
+    setFormData({
+      dateOfBirth: new Date().toISOString().split('T')[0],
+      healthCenterId: healthCenters.length > 0 ? healthCenters[0].id : "",
       motherName: "",
-      motherAge: "",
+      motherPhone: "",
+      motherNationalId: "",
+      fatherNationalId: "",
       fatherName: "",
-      fatherAge: "",
-      address: "",
-      phone: "",
-      email: "",
-      babyName: "",
-      gender: "",
-      birthDate: "",
-      birthTime: "",
-      weight: "",
-      height: "",
-      bloodType: "",
+      fatherPhone: "",
+      babyCount: 1,
       deliveryType: "Normal",
-      notes: "",
-    })
-    setShowModal(false)
-  }
+      leave: "yes",
+      status: "go home",
+      sector_id: sectors.length > 0 ? sectors[0].id : "",
+      cell_id: cells.length > 0 ? cells[0].id : "",
+      village_id: villages.length > 0 ? villages[0].id : "",
+      babies: [
+        {
+          name: "",
+          gender: "Male",
+          birthWeight: 0,
+          dischargebirthWeight: 0,
+          medications: []
+        }
+      ],
+    });
+  };
 
-  // Simple alert function (replace with SweetAlert in production)
-  const showAlert = (title, message, type) => {
-    const alertDiv = document.createElement("div")
-    alertDiv.className = "fixed inset-0 flex items-center justify-center z-50"
+  // Add another baby to the form
+  const addBaby = () => {
+    setFormData({
+      ...formData,
+      babyCount: formData.babyCount + 1,
+      babies: [
+        ...formData.babies,
+        {
+          name: "",
+          gender: "Male",
+          birthWeight: 0,
+          dischargebirthWeight: 0,
+          medications: []
+        }
+      ]
+    });
+  };
 
-    alertDiv.innerHTML = `
-      <div class="fixed inset-0 bg-black opacity-50"></div>
-      <div class="bg-white rounded-lg p-6 shadow-xl max-w-sm mx-auto z-10">
-        <div class="flex items-center mb-4 ${type === "success" ? "text-green-500" : "text-red-500"}">
-          ${
-            type === "success"
-              ? '<svg class="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>'
-              : '<svg class="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>'
-          }
-          <h3 class="text-lg font-medium">${title}</h3>
-        </div>
-        <p class="text-gray-700 mb-4">${message}</p>
-        <div class="text-right">
-          <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onclick="this.parentElement.parentElement.parentElement.remove()">OK</button>
-        </div>
-      </div>
-    `
+  // Remove a baby from the form
+  const removeBaby = (index) => {
+    if (formData.babies.length <= 1) return;
+    
+    const updatedBabies = formData.babies.filter((_, i) => i !== index);
+    setFormData({
+      ...formData,
+      babyCount: formData.babyCount - 1,
+      babies: updatedBabies
+    });
+  };
 
-    document.body.appendChild(alertDiv)
-  }
+  // Add medication
+  const addMedication = (babyIndex) => {
+    setFormData(prev => {
+      const updatedBabies = [...prev.babies];
+      updatedBabies[babyIndex] = {
+        ...updatedBabies[babyIndex],
+        medications: [
+          ...(updatedBabies[babyIndex].medications || []),
+          { name: "", dose: "", frequency: "" }
+        ]
+      };
+      return {
+        ...prev,
+        babies: updatedBabies
+      };
+    });
+  };
+
+  // Remove medication
+  const removeMedication = (babyIndex, medIndex) => {
+    setFormData(prev => {
+      const updatedBabies = [...prev.babies];
+      const updatedMedications = updatedBabies[babyIndex].medications.filter((_, index) => index !== medIndex);
+      
+      updatedBabies[babyIndex] = {
+        ...updatedBabies[babyIndex],
+        medications: updatedMedications
+      };
+      
+      return {
+        ...prev,
+        babies: updatedBabies
+      };
+    });
+  };
+
+  // Handle form input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  // Handle baby information changes
+  const handleBabyChange = (babyIndex, e) => {
+    const { name, value } = e.target;
+    const updatedBabies = [...formData.babies];
+    updatedBabies[babyIndex] = {
+      ...updatedBabies[babyIndex],
+      [name]: value
+    };
+    
+    setFormData({
+      ...formData,
+      babies: updatedBabies
+    });
+  };
+
+  // Handle medication changes
+  const handleMedicationChange = (babyIndex, medIndex, e) => {
+    const { name, value } = e.target;
+    setFormData(prev => {
+      const updatedBabies = [...prev.babies];
+      const updatedMedications = [...updatedBabies[babyIndex].medications];
+      
+      updatedMedications[medIndex] = {
+        ...updatedMedications[medIndex],
+        [name]: value
+      };
+      
+      updatedBabies[babyIndex] = {
+        ...updatedBabies[babyIndex],
+        medications: updatedMedications
+      };
+      
+      return {
+        ...prev,
+        babies: updatedBabies
+      };
+    });
+  };
+
+  // Show alert
+  const showAlert = (icon, title) => {
+    Swal.fire({
+      icon,
+      title,
+      showConfirmButton: false,
+      timer: 1500
+    });
+  };
+
+  // Get name from ID
+  const getNameFromId = (id, array) => {
+    const item = array.find(item => item.id == id);
+    return item ? item.name : id;
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString();
+  };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+    <div className="bg-white min-h-screen p-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-1">Newborn Records</h1>
-          <p className="text-sm text-gray-500">Manage and add new baby records</p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-          >
-            <PlusCircle className="w-5 h-5 mr-2" />
-            Add New Baby
-          </button>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-green-600">Born Records Management</h1>
+        <p className="text-gray-600">Manage born records in the system</p>
       </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="relative flex-1">
+      
+      {/* Filters and Actions */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div className="flex items-center gap-4">
+          <div className="relative w-full md:w-64">
             <input
               type="text"
-              placeholder="Search by name, ID, or mother's name..."
+              placeholder="Search by mother or baby name..."
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              onChange={handleSearch}
             />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            )}
+            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            <Filter className="w-5 h-5 mr-2 text-gray-500" />
-            Filters
-            {showFilters ? (
-              <ChevronUp className="w-4 h-4 ml-2 text-gray-500" />
-            ) : (
-              <ChevronDown className="w-4 h-4 ml-2 text-gray-500" />
-            )}
-          </button>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="sortByDate"
+              checked={sortByDate}
+              onChange={() => setSortByDate(!sortByDate)}
+              className="rounded text-green-600 focus:ring-green-500 mr-2"
+            />
+            <label htmlFor="sortByDate" className="text-sm text-gray-700">
+              Sort by newest
+            </label>
+          </div>
         </div>
-
-        {/* Filter Options */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Status Filter */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Status</h3>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.status.all}
-                      onChange={() => handleFilterChange("status", "all")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">All</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.status.discharged}
-                      onChange={() => handleFilterChange("status", "discharged")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">Discharged</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.status.inCare}
-                      onChange={() => handleFilterChange("status", "inCare")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">In Care</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.status.nicu}
-                      onChange={() => handleFilterChange("status", "nicu")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">NICU</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Gender Filter */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Gender</h3>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.gender.all}
-                      onChange={() => handleFilterChange("gender", "all")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">All</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.gender.male}
-                      onChange={() => handleFilterChange("gender", "male")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">Male</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.gender.female}
-                      onChange={() => handleFilterChange("gender", "female")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">Female</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Date Filter */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Date</h3>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.date.today}
-                      onChange={() => handleFilterChange("date", "today")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">Today</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.date.thisWeek}
-                      onChange={() => handleFilterChange("date", "thisWeek")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">This Week</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.date.thisMonth}
-                      onChange={() => handleFilterChange("date", "thisMonth")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">This Month</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.date.custom}
-                      onChange={() => handleFilterChange("date", "custom")}
-                      className="rounded text-green-600 focus:ring-green-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-600">Custom Range</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Custom Date Range (conditionally shown) */}
-            {filters.date.custom && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Filter Actions */}
-            <div className="mt-4 flex justify-end space-x-2">
-              <button
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
-                onClick={() => {
-                  setFilters({
-                    status: { all: true, discharged: false, inCare: false, nicu: false },
-                    gender: { all: true, male: false, female: false },
-                    date: { today: false, thisWeek: true, thisMonth: false, custom: false },
-                  })
-                }}
-              >
-                Reset
-              </button>
-              <button
-                className="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
-                onClick={() => setShowFilters(false)}
-              >
-                Apply Filters
-              </button>
-            </div>
+        
+        <button
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          onClick={() => {
+            resetForm();
+            setIsAddModalOpen(true);
+          }}
+          disabled={isLoading}
+        >
+          <Plus size={18} />
+          New Born Record
+        </button>
+      </div>
+      
+      {/* Born Records Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {isLoading && (
+          <div className="p-4 text-center text-gray-500">
+            Loading...
           </div>
         )}
-      </div>
-
-      {/* Baby Records Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-800">Baby Records</h2>
-        </div>
+        
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-green-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Baby Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mother's Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Gender
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Birth Date & Time
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Weight (kg)
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Doctor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Mother</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Babies</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {babyRecords.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <Baby className="h-5 w-5 text-green-600" />
+              {filteredBorns.length > 0 ? (
+                filteredBorns.map((born) => (
+                  <tr key={born.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {formatDate(born.dateOfBirth)}
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{record.babyName}</div>
-                        <div className="text-sm text-gray-500">ID: #{record.id}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">{born.motherName}</div>
+                      <div className="text-sm text-gray-500">{born.motherPhone}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">{born.babyCount} baby/babies</div>
+                      <div className="text-sm text-gray-500">
+                        {born.babies?.map((baby, index) => (
+                          <span key={`baby-${index}-${baby.name}`} className="mr-2">
+                            {baby.name} ({baby.gender})
+                            {index < born.babies.length - 1 ? "," : ""}
+                          </span>
+                        ))}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{record.motherName}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{record.gender}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{record.birthDate}</div>
-                    <div className="text-sm text-gray-500">{record.birthTime}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{record.weight}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        record.status === "Discharged"
-                          ? "bg-green-100 text-green-800"
-                          : record.status === "NICU"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {record.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.doctor}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-green-600 hover:text-green-900 mr-3">View</button>
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                    <button className="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        born.status === "go home" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                      }`}>
+                        {born.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button 
+                        className="text-green-600 hover:text-green-900"
+                        onClick={() => handleViewDetails(born)}
+                        disabled={isLoading}
+                      >
+                        <Eye size={18} />
+                      </button>
+                      <button 
+                        className="text-red-600 hover:text-red-900 ml-3"
+                        onClick={() => handleDeleteConfirm(born)}
+                        disabled={isLoading}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                    {isLoading ? 'Loading...' : 'No born records found'}
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">Showing 5 of 24 entries</div>
-            <div className="flex space-x-2">
-              <button className="px-3 py-1 border border-gray-300 rounded-md text-sm">Previous</button>
-              <button className="px-3 py-1 bg-green-600 text-white rounded-md text-sm">Next</button>
+      </div>
+      
+      {/* Add Born Record Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
+              <h2 className="text-xl font-semibold text-green-700">Add New Born Record</h2>
+              <button 
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() => setIsAddModalOpen(false)}
+                disabled={isLoading}
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <EditForm 
+                formData={formData} 
+                handleChange={handleChange}
+                handleBabyChange={handleBabyChange}
+                handleMedicationChange={handleMedicationChange}
+                addBaby={addBaby}
+                removeBaby={removeBaby}
+                addMedication={addMedication}
+                removeMedication={removeMedication}
+                sectors={sectors}
+                cells={cells}
+                villages={villages}
+                healthCenters={healthCenters}
+                handleSectorChange={handleSectorChange}
+                handleCellChange={handleCellChange}
+                handleVillageChange={handleVillageChange}
+              />
+            </div>
+            
+            <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-2">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                onClick={() => setIsAddModalOpen(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300"
+                onClick={createBorn}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Adding...' : 'Add Record'}
+              </button>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Add New Baby Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-              &#8203;
-            </span>
-
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="flex justify-between items-center pb-4 mb-4 border-b border-gray-200">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">Add New Baby Record</h3>
-                  <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-500">
-                    <X className="h-6 w-6" />
+      )}
+      
+      {/* View/Edit Born Record Modal */}
+      {isViewModalOpen && currentBorn && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
+              <h2 className="text-xl font-semibold text-green-700">
+                {isEditMode ? 'Edit Born Record' : 'Born Record Details'}
+              </h2>
+              <div className="flex items-center gap-2">
+                {!isEditMode && (
+                  <button 
+                    className="text-green-600 hover:text-green-900"
+                    onClick={() => setIsEditMode(true)}
+                    disabled={isLoading}
+                  >
+                    <Edit size={20} />
                   </button>
-                </div>
-
-                <form onSubmit={handleSubmit}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Parent Information */}
-                    <div className="space-y-4">
-                      <h4 className="text-md font-medium text-gray-700 flex items-center">
-                        <User className="h-5 w-5 mr-2 text-green-600" />
-                        Parent Information
-                      </h4>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name</label>
-                        <input
-                          type="text"
-                          name="motherName"
-                          value={newBabyData.motherName}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Age</label>
-                        <input
-                          type="number"
-                          name="motherAge"
-                          value={newBabyData.motherAge}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Father's Name</label>
-                        <input
-                          type="text"
-                          name="fatherName"
-                          value={newBabyData.fatherName}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Father's Age</label>
-                        <input
-                          type="number"
-                          name="fatherAge"
-                          value={newBabyData.fatherAge}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                        <textarea
-                          name="address"
-                          value={newBabyData.address}
-                          onChange={handleInputChange}
-                          rows="2"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          required
-                        ></textarea>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={newBabyData.phone}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input
-                          type="email"
-                          name="email"
-                          value={newBabyData.email}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Baby Information */}
-                    <div className="space-y-4">
-                      <h4 className="text-md font-medium text-gray-700 flex items-center">
-                        <Baby className="h-5 w-5 mr-2 text-green-600" />
-                        Baby Information
-                      </h4>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Baby's Name (Optional)</label>
-                        <input
-                          type="text"
-                          name="babyName"
-                          value={newBabyData.babyName}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                        <select
-                          name="gender"
-                          value={newBabyData.gender}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          required
-                        >
-                          <option value="">Select Gender</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                        </select>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
-                          <input
-                            type="date"
-                            name="birthDate"
-                            value={newBabyData.birthDate}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Birth Time</label>
-                          <input
-                            type="time"
-                            name="birthTime"
-                            value={newBabyData.birthTime}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            name="weight"
-                            value={newBabyData.weight}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            name="height"
-                            value={newBabyData.height}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Blood Type</label>
-                        <select
-                          name="bloodType"
-                          value={newBabyData.bloodType}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        >
-                          <option value="">Select Blood Type</option>
-                          <option value="A+">A+</option>
-                          <option value="A-">A-</option>
-                          <option value="B+">B+</option>
-                          <option value="B-">B-</option>
-                          <option value="AB+">AB+</option>
-                          <option value="AB-">AB-</option>
-                          <option value="O+">O+</option>
-                          <option value="O-">O-</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label>
-                        <select
-                          name="deliveryType"
-                          value={newBabyData.deliveryType}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          required
-                        >
-                          <option value="Normal">Normal</option>
-                          <option value="C-Section">C-Section</option>
-                          <option value="Assisted">Assisted</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                        <textarea
-                          name="notes"
-                          value={newBabyData.notes}
-                          onChange={handleInputChange}
-                          rows="3"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        ></textarea>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
-                    >
-                      Save Record
-                    </button>
-                  </div>
-                </form>
+                )}
+                <button 
+                  className="text-gray-400 hover:text-gray-600"
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    setIsEditMode(false);
+                    setCurrentBorn(null);
+                  }}
+                  disabled={isLoading}
+                >
+                  <X size={24} />
+                </button>
               </div>
+            </div>
+            
+            <div className="p-6">
+              {isEditMode ? (
+                <EditForm 
+                  formData={formData} 
+                  handleChange={handleChange}
+                  handleBabyChange={handleBabyChange}
+                  handleMedicationChange={handleMedicationChange}
+                  addBaby={addBaby}
+                  removeBaby={removeBaby}
+                  addMedication={addMedication}
+                  removeMedication={removeMedication}
+                  sectors={sectors}
+                  cells={cells}
+                  villages={villages}
+                  healthCenters={healthCenters}
+                  handleSectorChange={handleSectorChange}
+                  handleCellChange={handleCellChange}
+                  handleVillageChange={handleVillageChange}
+                />
+              ) : (
+                <ViewDetails 
+                  born={currentBorn} 
+                  sectors={sectors} 
+                  cells={cells} 
+                  villages={villages} 
+                  healthCenters={healthCenters} 
+                  getNameFromId={getNameFromId}
+                />
+              )}
+            </div>
+            
+            <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-2">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  setIsEditMode(false);
+                  setCurrentBorn(null);
+                }}
+                disabled={isLoading}
+              >
+                {isEditMode ? 'Cancel' : 'Close'}
+              </button>
+              {isEditMode && (
+                <button
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300"
+                  onClick={updateBorn}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Updating...' : 'Update Record'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center text-red-600 mb-4">
+              <AlertTriangle className="h-8 w-8 mr-2" />
+              <h2 className="text-xl font-bold">Confirm Delete</h2>
+            </div>
+            
+            <p className="mb-6">
+              Are you sure you want to delete the record for <span className="font-semibold">{currentBorn?.motherName}</span>? 
+              This action cannot be undone.
+            </p>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteBorn}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-300 flex items-center"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Deleting...' : (
+                  <>
+                    <Trash2 className="h-5 w-5 mr-1" />
+                    Delete
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default NewBaby
+// View-only details component
+const ViewDetails = ({ born, sectors, cells, villages, healthCenters, getNameFromId }) => {
+  if (!born) return <div>No data available</div>;
+  
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-lg font-medium text-green-700 mb-3">Mother Information</h3>
+          <div className="bg-green-50 p-4 rounded">
+            <p className="mb-2"><span className="font-semibold">Name:</span> {born.motherName}</p>
+            <p className="mb-2"><span className="font-semibold">Phone:</span> {born.motherPhone}</p>
+            <p className="mb-2"><span className="font-semibold">National ID:</span> {born.motherNationalId}</p>
+          </div>
+        </div>
+        
+        <div>
+          <h3 className="text-lg font-medium text-green-700 mb-3">Father Information</h3>
+          <div className="bg-green-50 p-4 rounded">
+            <p className="mb-2"><span className="font-semibold">Name:</span> {born.fatherName}</p>
+            <p className="mb-2"><span className="font-semibold">Phone:</span> {born.fatherPhone}</p>
+            <p className="mb-2"><span className="font-semibold">National ID:</span> {born.fatherNationalId}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
+        <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
+          <p><span className="font-semibold">Date of Birth:</span> {new Date(born.dateOfBirth).toLocaleDateString()}</p>
+          <p><span className="font-semibold">Delivery Type:</span> {born.deliveryType}</p>
+          <p><span className="font-semibold">Health Center:</span> {getNameFromId(born.healthCenterId, healthCenters)}</p>
+          <p><span className="font-semibold">Leave Status:</span> {born.leave}</p>
+          <p><span className="font-semibold">Status:</span> {born.status}</p>
+          <p><span className="font-semibold">Baby Count:</span> {born.babyCount}</p>
+        </div>
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Location</h3>
+        <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
+          <p><span className="font-semibold">Sector:</span> {getNameFromId(born.sector_id, sectors)}</p>
+          <p><span className="font-semibold">Cell:</span> {getNameFromId(born.cell_id, cells)}</p>
+          <p><span className="font-semibold">Village:</span> {getNameFromId(born.village_id, villages)}</p>
+        </div>
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Babies</h3>
+        <div className="space-y-4">
+          {born.babies?.map((baby, index) => (
+            <div key={`baby-${index}-${baby.name}`} className="bg-green-50 p-4 rounded">
+              <h4 className="font-semibold text-green-800 mb-2">Baby {index + 1}: {baby.name}</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                <p><span className="font-semibold">Gender:</span> {baby.gender}</p>
+                <p><span className="font-semibold">Birth Weight:</span> {baby.birthWeight} kg</p>
+                <p><span className="font-semibold">Discharge Weight:</span> {baby.dischargebirthWeight} kg</p>
+              </div>
+              
+              <h5 className="font-semibold text-green-800 mb-2">Medications</h5>
+              {baby.medications?.length > 0 ? (
+                <table className="w-full">
+                  <thead className="bg-green-100">
+                    <tr>
+                      <th className="text-left py-2 px-3">Medication</th>
+                      <th className="text-left py-2 px-3">Dose</th>
+                      <th className="text-left py-2 px-3">Frequency</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {baby.medications.map((med, medIndex) => (
+                      <tr key={`med-${medIndex}`}>
+                        <td className="py-2 px-3">{med.name || '-'}</td>
+                        <td className="py-2 px-3">{med.dose || '-'}</td>
+                        <td className="py-2 px-3">{med.frequency || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-gray-500">No medications recorded</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
+// Edit form component
+const EditForm = ({ 
+  formData, 
+  handleChange, 
+  handleBabyChange, 
+  handleMedicationChange,
+  addBaby,
+  removeBaby,
+  addMedication,
+  removeMedication,
+  sectors,
+  cells,
+  villages,
+  healthCenters,
+  handleSectorChange,
+  handleCellChange,
+  handleVillageChange
+}) => {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-lg font-medium text-green-700 mb-3">Mother Information</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name *</label>
+              <input
+                type="text"
+                name="motherName"
+                value={formData.motherName}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Phone *</label>
+              <input
+                type="text"
+                name="motherPhone"
+                value={formData.motherPhone}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mother's National ID *</label>
+              <input
+                type="text"
+                name="motherNationalId"
+                value={formData.motherNationalId}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <h3 className="text-lg font-medium text-green-700 mb-3">Father Information</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Father's Name</label>
+              <input
+                type="text"
+                name="fatherName"
+                value={formData.fatherName}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Father's Phone</label>
+              <input
+                type="text"
+                name="fatherPhone"
+                value={formData.fatherPhone}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Father's National ID</label>
+              <input
+                type="text"
+                name="fatherNationalId"
+                value={formData.fatherNationalId}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type *</label>
+            <select
+              name="deliveryType"
+              value={formData.deliveryType}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              <option value="Normal">Normal</option>
+              <option value="C-section">C-section</option>
+              <option value="Assisted">Assisted</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Health Center *</label>
+            <select
+              name="healthCenterId"
+              value={formData.healthCenterId}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              {healthCenters.map((hc) => (
+                <option key={`hc-${hc.id}`} value={hc.id}>{hc.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Leave Status *</label>
+            <select
+              name="leave"
+              value={formData.leave}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              <option value="go home">Go Home</option>
+              <option value="referred">Referred</option>
+              <option value="hospitalized">Hospitalized</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Location</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sector *</label>
+            <select
+              name="sector_id"
+              value={formData.sector_id}
+              onChange={handleSectorChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              {sectors.map((sector) => (
+                <option key={`sector-${sector.id}`} value={sector.id}>{sector.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cell *</label>
+            <select
+              name="cell_id"
+              value={formData.cell_id}
+              onChange={handleCellChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+              disabled={!formData.sector_id}
+            >
+              <option value="">Select Cell</option>
+              {cells.map((cell) => (
+                <option key={`cell-${cell.id}`} value={cell.id}>{cell.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Village *</label>
+            <select
+              name="village_id"
+              value={formData.village_id}
+              onChange={handleVillageChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+              disabled={!formData.cell_id}
+            >
+              <option value="">Select Village</option>
+              {villages.map((village) => (
+                <option key={`village-${village.id}`} value={village.id}>{village.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-medium text-green-700">Baby Information</h3>
+          <button
+            type="button"
+            onClick={addBaby}
+            className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Another Baby
+          </button>
+        </div>
+        
+        {formData.babies.map((baby, babyIndex) => (
+          <div key={`baby-form-${babyIndex}`} className="mb-6 p-4 bg-green-50 rounded">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="font-semibold text-green-800">Baby {babyIndex + 1}</h4>
+              {formData.babies.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeBaby(babyIndex)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={baby.name}
+                  onChange={(e) => handleBabyChange(babyIndex, e)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+                <select
+                  name="gender"
+                  value={baby.gender}
+                  onChange={(e) => handleBabyChange(babyIndex, e)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  required
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Birth Weight (kg) *</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  name="birthWeight"
+                  value={baby.birthWeight}
+                  onChange={(e) => handleBabyChange(babyIndex, e)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Discharge Weight (kg) *</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  name="dischargebirthWeight"
+                  value={baby.dischargebirthWeight}
+                  onChange={(e) => handleBabyChange(babyIndex, e)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-semibold text-green-800">Medications</h5>
+                <button
+                  type="button"
+                  onClick={() => addMedication(babyIndex)}
+                  className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Medication
+                </button>
+              </div>
+              
+              {(baby.medications?.length > 0) ? (
+                <table className="w-full">
+                  <thead className="bg-green-100">
+                    <tr>
+                      <th className="text-left py-2 px-3">Medication</th>
+                      <th className="text-left py-2 px-3">Dose</th>
+                      <th className="text-left py-2 px-3">Frequency</th>
+                      <th className="text-left py-2 px-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {baby.medications.map((med, medIndex) => (
+                      <tr key={`med-${medIndex}`}>
+                        <td className="py-2 px-3">
+                          <input
+                            type="text"
+                            name="name"
+                            value={med.name}
+                            onChange={(e) => handleMedicationChange(babyIndex, medIndex, e)}
+                            className="w-full p-1 text-sm border rounded"
+                          />
+                        </td>
+                        <td className="py-2 px-3">
+                          <input
+                            type="text"
+                            name="dose"
+                            value={med.dose}
+                            onChange={(e) => handleMedicationChange(babyIndex, medIndex, e)}
+                            className="w-full p-1 text-sm border rounded"
+                          />
+                        </td>
+                        <td className="py-2 px-3">
+                          <input
+                            type="text"
+                            name="frequency"
+                            value={med.frequency}
+                            onChange={(e) => handleMedicationChange(babyIndex, medIndex, e)}
+                            className="w-full p-1 text-sm border rounded"
+                          />
+                        </td>
+                        <td className="py-2 px-3">
+                          <button
+                            type="button"
+                            onClick={() => removeMedication(babyIndex, medIndex)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-gray-500">No medications recorded</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default BornPage;

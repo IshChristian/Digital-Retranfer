@@ -3,35 +3,31 @@ import { Link, useLocation } from "react-router-dom";
 import Cookies from "js-cookie";
 import {
   Home,
-  BarChart2,
   Users,
   Calendar,
-  FileText,
+  Bell,
   Settings,
   HelpCircle,
   LogOut,
   Menu,
-  Baby,
+  FileText,
+  User,
   Heart,
-  Clock,
-  Activity,
-  UserPlus,
-  Clipboard,
-  Hospital,
-  UserCheck
+  Hospital
 } from "lucide-react";
 
 function Sidebar({ sidebarOpen, toggleSidebar }) {
   const location = useLocation();
-  const [institution, setInstitution] = useState("");
+  const [role, setRole] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
 
   useEffect(() => {
-    const userInstitution = Cookies.get("institution");
-    if (userInstitution) {
-      setInstitution(userInstitution);
+    // Using role instead of institution
+    const userRole = Cookies.get("role");
+    if (userRole) {
+      setRole(userRole);
     }
 
     // Add window resize listener
@@ -68,8 +64,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
   };
 
   const confirmLogout = () => {
-    Cookies.remove("username");
-    Cookies.remove("institution");
+    Cookies.remove("email");
     window.location.href = "/login";
   };
 
@@ -79,23 +74,20 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
 
   const adminMenuItems = [
     { path: "/", icon: Home, label: "Dashboard" },
-    { path: "/new-baby", icon: Baby, label: "Newborns" },
-    { path: "/mothers", icon: Users, label: "Mothers" },
-    { path: "/health-records", icon: Heart, label: "Health Records" },
-    { path: "/hospitals", icon: Hospital, label: "Hospitals" },
-    { path: "/users", icon: UserPlus, label: "Manage Users" },
-    { path: "/statistics", icon: BarChart2, label: "Statistics" },
-    { path: "/reports", icon: FileText, label: "Reports" },
+    { path: "/users", icon: User, label: "Users" },
+    { path: "/healthcenter", icon: Hospital, label: "Health Center" },
+    { path: "/borns", icon: FileText, label: "Borns" },
+    { path: "/babies", icon: Heart, label: "Babies" },
+    { path: "/appointments", icon: Calendar, label: "Appointments" },
+    { path: "/notifications", icon: Bell, label: "Notifications" },
   ];
 
   const userMenuItems = [
     { path: "/", icon: Home, label: "Dashboard" },
-    { path: "/new-baby", icon: Baby, label: "Newborns" },
-    { path: "/mothers", icon: Users, label: "Mothers" },
+    { path: "/borns", icon: FileText, label: "Borns" },
+    { path: "/babies", icon: Heart, label: "Babies" },
     { path: "/appointments", icon: Calendar, label: "Appointments" },
-    { path: "/birth-timeline", icon: Clock, label: "Birth Timeline" },
-    { path: "/vitals", icon: Activity, label: "Vitals" },
-    { path: "/daily-records", icon: Clipboard, label: "Daily Records" },
+    { path: "/notifications", icon: Bell, label: "Notifications" },
   ];
 
   const bottomMenuItems = [
@@ -109,7 +101,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
     },
   ];
 
-  const menuItems = institution === "admin" ? adminMenuItems : userMenuItems;
+  const menuItems = role === "admin" ? adminMenuItems : userMenuItems;
 
   // Handle menu item click on mobile to collapse the sidebar
   const handleNavItemClick = (onClick) => {
@@ -129,25 +121,11 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
         {/* Sidebar Header */}
         <div className="p-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Baby className={`${isSmallScreen ? 'h-6 w-6' : 'h-8 w-8'} text-green-700`} />
-            {effectiveSidebarOpen && <span className="text-xl font-bold">BabyRecorder</span>}
+            {effectiveSidebarOpen && <span className="text-xl font-bold">Digital Retransfer</span>}
           </div>
           <button onClick={handleToggleSidebar} className="text-green-700">
             <Menu className="h-5 w-5" />
           </button>
-        </div>
-
-        {/* User Info */}
-        <div className={`${effectiveSidebarOpen ? "px-4" : "px-2"} py-2`}>
-          <div className={`flex items-center ${effectiveSidebarOpen ? "justify-start" : "justify-center"} bg-green-100 rounded-md p-2`}>
-            <UserCheck className={`${isSmallScreen ? 'h-4 w-4' : 'h-5 w-5'} text-green-700`} />
-            {effectiveSidebarOpen && (
-              <div className="ml-2">
-                <p className="text-xs text-green-600">Logged in as:</p>
-                <p className="text-sm font-medium capitalize">{institution}</p>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Navigation Menu */}
