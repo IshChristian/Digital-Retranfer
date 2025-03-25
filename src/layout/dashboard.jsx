@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+// import Footer from "../components/Footer";
 
 function MainLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -23,7 +23,7 @@ function MainLayout({ children }) {
           {children}
         </main>
 
-        <Footer />
+        {/* <Footer /> */}
       </div>
     </div>
   );

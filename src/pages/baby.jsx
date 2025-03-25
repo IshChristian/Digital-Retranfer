@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   Search, 
@@ -34,6 +35,9 @@ const BornPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [currentBorn, setCurrentBorn] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Role-based access
+  const [userRole, setUserRole] = useState(Cookies.get('role') || '');
   
   const [formData, setFormData] = useState({
     dateOfBirth: new Date().toISOString().split('T')[0],
@@ -471,6 +475,9 @@ const BornPage = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Check if user has Pediatrition role
+  const isPediatrition = userRole === 'Pediatrition';
+  
   return (
     <div className="bg-white min-h-screen p-6">
       {/* Header */}
@@ -506,17 +513,19 @@ const BornPage = () => {
           </div>
         </div>
         
-        <button
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-          onClick={() => {
-            resetForm();
-            setIsAddModalOpen(true);
-          }}
-          disabled={isLoading}
-        >
-          <Plus size={18} />
-          New Born Record
-        </button>
+        {isPediatrition && (
+          <button
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            onClick={() => {
+              resetForm();
+              setIsAddModalOpen(true);
+            }}
+            disabled={isLoading}
+          >
+            <Plus size={18} />
+            New Born
+          </button>
+        )}
       </div>
       
       {/* Born Records Table */}
@@ -577,13 +586,15 @@ const BornPage = () => {
                       >
                         <Eye size={18} />
                       </button>
-                      <button 
-                        className="text-red-600 hover:text-red-900 ml-3"
-                        onClick={() => handleDeleteConfirm(born)}
-                        disabled={isLoading}
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {isPediatrition && (
+                        <button 
+                          className="text-red-600 hover:text-red-900 ml-3"
+                          onClick={() => handleDeleteConfirm(born)}
+                          disabled={isLoading}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -601,7 +612,7 @@ const BornPage = () => {
       
       {/* Add Born Record Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
               <h2 className="text-xl font-semibold text-green-700">Add New Born Record</h2>
@@ -653,17 +664,17 @@ const BornPage = () => {
           </div>
         </div>
       )}
-      
+
       {/* View/Edit Born Record Modal */}
       {isViewModalOpen && currentBorn && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
               <h2 className="text-xl font-semibold text-green-700">
                 {isEditMode ? 'Edit Born Record' : 'Born Record Details'}
               </h2>
               <div className="flex items-center gap-2">
-                {!isEditMode && (
+                {!isEditMode && isPediatrition && (
                   <button 
                     className="text-green-600 hover:text-green-900"
                     onClick={() => setIsEditMode(true)}
@@ -729,7 +740,7 @@ const BornPage = () => {
               >
                 {isEditMode ? 'Cancel' : 'Close'}
               </button>
-              {isEditMode && (
+              {isEditMode && isPediatrition && (
                 <button
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300"
                   onClick={updateBorn}
@@ -745,7 +756,7 @@ const BornPage = () => {
       
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex items-center text-red-600 mb-4">
               <AlertTriangle className="h-8 w-8 mr-2" />

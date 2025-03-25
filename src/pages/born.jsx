@@ -16,6 +16,10 @@ const BabiesPage = () => {
   const [currentBaby, setCurrentBaby] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedBornId, setSelectedBornId] = useState("");
+  const [userRole, setUserRole] = useState(Cookies.get('role') || '');
+
+  // Check if user has Pediatrition role
+  const isPediatrition = userRole === 'Pediatrition';
 
   // Setup axios instance with token
   const API_URL = "https://digitalbackend-uobz.onrender.com/api/v1";
@@ -233,14 +237,16 @@ const BabiesPage = () => {
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
         </div>
         
-        <button
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-          onClick={() => openModal()}
-          disabled={isLoading}
-        >
-          <Plus size={18} />
-          Add New Baby
-        </button>
+        {isPediatrition && (
+          <button
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            onClick={() => openModal()}
+            disabled={isLoading}
+          >
+            <Plus size={18} />
+            Add New Baby
+          </button>
+        )}
       </div>
       
       {/* Babies Table */}
@@ -301,13 +307,27 @@ const BabiesPage = () => {
                       >
                         <Eye size={18} />
                       </button>
-                      <button 
-                        className="text-red-600 hover:text-red-900 ml-3"
-                        onClick={() => confirmDelete(baby)}
-                        disabled={isLoading}
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {isPediatrition && (
+                        <>
+                          <button 
+                            className="text-green-600 hover:text-green-900 ml-3"
+                            onClick={() => {
+                              openModal(baby);
+                              setIsEditMode(true);
+                            }}
+                            disabled={isLoading}
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button 
+                            className="text-red-600 hover:text-red-900 ml-3"
+                            onClick={() => confirmDelete(baby)}
+                            disabled={isLoading}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -325,11 +345,11 @@ const BabiesPage = () => {
       
       {/* Add/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-md max-h-screen overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
               <h2 className="text-xl font-semibold text-green-700">
-                {isEditMode ? 'Edit Baby' : 'Add New Baby'}
+                {isEditMode ? 'Edit Baby' : 'New Baby'}
               </h2>
               <button 
                 className="text-gray-400 hover:text-gray-600"
@@ -443,14 +463,16 @@ const BabiesPage = () => {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300 flex items-center"
-                  disabled={isLoading}
-                >
-                  <Save className="h-5 w-5 mr-1" />
-                  {isLoading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update' : 'Add')}
-                </button>
+                {isPediatrition && (
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300 flex items-center"
+                    disabled={isLoading}
+                  >
+                    <Save className="h-5 w-5 mr-1" />
+                    {isLoading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update' : 'Add')}
+                  </button>
+                )}
               </div>
             </form>
           </div>

@@ -52,6 +52,7 @@ function Login({ setIsAuthenticated }) {
         document.cookie = `email=${formData.email}; expires=${expires.toUTCString()}; path=/`;
         document.cookie = `role=${response.data.user.role}; expires=${expires.toUTCString()}; path=/`;
         document.cookie = `token=${response.data.token}; expires=${expires.toUTCString()}; path=/`;
+        document.cookie = `userID=${response.data.user.id}; expires=${expires.toUTCString()}; path=/`;
         
         // Store token in localStorage or cookies based on your security requirements
         localStorage.setItem("token", response.data.token);

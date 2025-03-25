@@ -342,8 +342,8 @@ const handleDeleteHealthCenter = (centerId) => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredCenters.length > 0 ? (
-                filteredCenters.map((center) => (
-                  <tr key={center.id} className="hover:bg-gray-50">
+                filteredCenters.map((center, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -389,7 +389,7 @@ const handleDeleteHealthCenter = (centerId) => {
       
       {/* Add Health Center Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-green-300 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-md max-h-screen overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
               <h2 className="text-xl font-semibold text-green-700">Add New Health Center</h2>
@@ -458,7 +458,7 @@ const handleDeleteHealthCenter = (centerId) => {
       
       {/* View/Edit Health Center Modal */}
       {isViewModalOpen && currentCenter && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-green-300 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-md max-h-screen overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
               <h2 className="text-xl font-semibold text-green-700">
