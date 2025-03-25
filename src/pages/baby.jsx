@@ -476,7 +476,7 @@ const BornPage = () => {
   };
 
   // Check if user has Pediatrition role
-  const isPediatrition = userRole === 'Pediatrition';
+  const isPediatrition = userRole === 'pediatrition';
   
   return (
     <div className="bg-white min-h-screen p-6">

@@ -19,7 +19,7 @@ const BabiesPage = () => {
   const [userRole, setUserRole] = useState(Cookies.get('role') || '');
 
   // Check if user has Pediatrition role
-  const isPediatrition = userRole === 'Pediatrition';
+  const isPediatrition = userRole === 'pediatrition';
 
   // Setup axios instance with token
   const API_URL = "https://digitalbackend-uobz.onrender.com/api/v1";

@@ -252,7 +252,7 @@ const FeedbackPage = () => {
   };
 
   // Check if user is Pediatrition
-  const isPediatrition = userRole === "Pediatrition";
+  const isPediatrition = userRole === "pediatrition";
 
   return (
     <div className="bg-white min-h-screen p-6">
