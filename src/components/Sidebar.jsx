@@ -15,7 +15,8 @@ import {
   User,
   Heart,
   Hospital,
-  X
+  X,
+  ChevronLeft
 } from "lucide-react";
 
 function Sidebar({ sidebarOpen, toggleSidebar }) {
@@ -31,7 +32,6 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
-    email: "",
     phone: "",
     gender: ""
   });
@@ -79,7 +79,6 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
       setFormData({
         firstname: user.firstname,
         lastname: user.lastname,
-        email: user.email,
         phone: user.phone,
         gender: user.gender
       });
@@ -153,7 +152,8 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
     Cookies.remove("token");
     Cookies.remove("role");
     Cookies.remove("userID");
-    navigate("/login");
+    setShowLogoutConfirm(false);
+    window.location.reload();
   };
 
   const isSmallScreen = windowWidth < 768;
@@ -177,16 +177,13 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
     { path: "/users", icon: User, label: "Users" },
     { path: "/healthcenter", icon: Hospital, label: "Health Center" },
     { path: "/borns", icon: FileText, label: "Borns" },
-    { path: "/babies", icon: Heart, label: "Babies" },
     { path: "/appointments", icon: Calendar, label: "Appointments" },
-    { path: "/feedbacks", icon: Calendar, label: "Feedbacks" },
     { path: "/notifications", icon: Bell, label: "Notifications" },
   ];
 
   const userMenuItems = [
     { path: "/", icon: Home, label: "Dashboard" },
     { path: "/borns", icon: FileText, label: "Borns" },
-    { path: "/babies", icon: Heart, label: "Babies" },
     { path: "/appointments", icon: Calendar, label: "Appointments" },
     { path: "/notifications", icon: Bell, label: "Notifications" },
   ];
@@ -216,18 +213,35 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
 
   return (
     <>
+
       <aside 
-        className={`${
-          effectiveSidebarOpen ? "w-64" : "w-16"
-        } transition-all duration-300 bg-white text-green-700 h-screen shadow-sm bg-opacity-95 flex flex-col md:relative`}
+        className={`fixed md:relative z-50 ${
+          effectiveSidebarOpen ? "w-64" : "w-0 md:w-16"
+        } transition-all duration-300 bg-white text-green-700 h-screen shadow-sm bg-opacity-95 flex flex-col ${
+          isSmallScreen && !isMobileExpanded ? "-translate-x-full md:translate-x-0" : "translate-x-0"
+        }`}
       >
         {/* Sidebar Header */}
-        <div className="p-3 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {effectiveSidebarOpen && <span className="text-xl font-bold">Digital Retransfer</span>}
-          </div>
-          <button onClick={handleToggleSidebar} className="text-green-700">
-            <Menu className="h-5 w-5" />
+        <div className="p-3 flex items-center justify-between border-b border-gray-200">
+          {effectiveSidebarOpen && (
+            <div className="flex items-center space-x-2">
+              <span className="text-xl font-bold">Digital Retransfer</span>
+            </div>
+          )}
+          <button 
+            onClick={handleToggleSidebar} 
+            className="text-green-700 hover:text-green-900"
+          >
+            {effectiveSidebarOpen ? (
+              <ChevronLeft size={20} />
+            ) : (
+              <button 
+          onClick={handleMobileToggle}
+          className="fixed z-40 left-4 top-4 bg-white p-2 rounded-md shadow-md text-green-700"
+        >
+          <Menu size={24} />
+        </button>
+            )}
           </button>
         </div>
 
@@ -243,7 +257,6 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
               active={location.pathname === item.path}
               expanded={effectiveSidebarOpen}
               onClick={() => handleNavItemClick(item.onClick)}
-              isSmallScreen={isSmallScreen}
             />
           ))}
 
@@ -258,24 +271,15 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
               active={location.pathname === item.path}
               expanded={effectiveSidebarOpen}
               onClick={() => handleNavItemClick(item.onClick)}
-              isSmallScreen={isSmallScreen}
             />
           ))}
         </nav>
       </aside>
 
-      {/* Overlay for mobile when sidebar is expanded */}
-      {isSmallScreen && isMobileExpanded && (
-        <div 
-          className="fixed inset-0 bg-green-300 bg-opacity-20"
-          onClick={() => setIsMobileExpanded(false)}
-        ></div>
-      )}
-
       {/* Settings Modal */}
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-green-300 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto mx-4">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Settings</h3>
@@ -307,9 +311,9 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
               {activeTab === "profile" && userData && (
                 <div className="mt-6">
                   <form onSubmit={handleUpdateProfile}>
-                    <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                      <div className="sm:col-span-3">
-                        <label htmlFor="firstname" className="block text-sm font-medium text-gray-700">
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor="firstname" className="block text-sm font-medium text-gray-700 mb-1">
                           First name
                         </label>
                         <input
@@ -318,12 +322,12 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           id="firstname"
                           value={formData.firstname}
                           onChange={(e) => setFormData({...formData, firstname: e.target.value})}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
-                      <div className="sm:col-span-3">
-                        <label htmlFor="lastname" className="block text-sm font-medium text-gray-700">
+                      <div>
+                        <label htmlFor="lastname" className="block text-sm font-medium text-gray-700 mb-1">
                           Last name
                         </label>
                         <input
@@ -332,26 +336,12 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           id="lastname"
                           value={formData.lastname}
                           onChange={(e) => setFormData({...formData, lastname: e.target.value})}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
-                      <div className="sm:col-span-4">
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                          Email address
-                        </label>
-                        <input
-                          type="email"
-                          name="email"
-                          id="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({...formData, email: e.target.value})}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
-                        />
-                      </div>
-
-                      <div className="sm:col-span-4">
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                      <div>
+                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                           Phone number
                         </label>
                         <input
@@ -360,12 +350,12 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           id="phone"
                           value={formData.phone}
                           onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
-                      <div className="sm:col-span-4">
-                        <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
+                      <div>
+                        <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
                           Gender
                         </label>
                         <select
@@ -373,7 +363,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           id="gender"
                           value={formData.gender}
                           onChange={(e) => setFormData({...formData, gender: e.target.value})}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         >
                           <option value="Male">Male</option>
                           <option value="Female">Female</option>
@@ -386,15 +376,15 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                       <button
                         type="button"
                         onClick={() => setShowSettingsModal(false)}
-                        className="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                        className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="rounded-md border border-transparent bg-green-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                       >
-                        Save
+                        Save Changes
                       </button>
                     </div>
                   </form>
@@ -404,9 +394,9 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
               {activeTab === "password" && (
                 <div className="mt-6">
                   <form onSubmit={handleChangePassword}>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
                           Current Password
                         </label>
                         <input
@@ -415,12 +405,12 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           id="currentPassword"
                           value={passwordData.currentPassword}
                           onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
                           New Password
                         </label>
                         <input
@@ -429,12 +419,12 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           id="newPassword"
                           value={passwordData.newPassword}
                           onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                           Confirm New Password
                         </label>
                         <input
@@ -443,7 +433,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           id="confirmPassword"
                           value={passwordData.confirmPassword}
                           onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
                     </div>
@@ -452,13 +442,13 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                       <button
                         type="button"
                         onClick={() => setShowSettingsModal(false)}
-                        className="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                        className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="rounded-md border border-transparent bg-green-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                       >
                         Change Password
                       </button>
@@ -473,8 +463,8 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
 
       {/* Help Modal */}
       {showHelpModal && (
-        <div className="fixed inset-0 bg-green-300 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Help & Support</h3>
@@ -491,22 +481,18 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                   Welcome to the Digital Retransfer system. If you need any assistance or have questions about using the application, please don't hesitate to reach out to our support team.
                 </p>
                 <h4 className="text-sm font-medium text-gray-900 mt-4">Support Contact</h4>
-                <ul className="mt-2">
+                <ul className="mt-2 space-y-1">
                   <li>Email: support@digitalretransfer.com</li>
                   <li>Phone: +250 788 123 456</li>
                   <li>Working Hours: Mon-Fri, 8:00 AM - 5:00 PM</li>
                 </ul>
-                <h4 className="text-sm font-medium text-gray-900 mt-4">Frequently Asked Questions</h4>
-                <p className="mt-2">
-                  Visit our <a href="#" className="text-green-600 hover:text-green-800">FAQ page</a> for answers to common questions about using the system.
-                </p>
               </div>
 
               <div className="mt-6">
                 <button
                   type="button"
                   onClick={() => setShowHelpModal(false)}
-                  className="rounded-md border border-transparent bg-green-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                 >
                   Close
                 </button>
@@ -518,7 +504,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
 
       {/* Logout Confirmation Dialog */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-green-300 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
             <h3 className="text-lg font-medium text-gray-900">Confirm Logout</h3>
             <p className="mt-2 text-sm text-gray-500">
@@ -527,13 +513,13 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
             <div className="mt-5 flex justify-end gap-3">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmLogout}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
               >
                 Logout
               </button>
@@ -553,18 +539,16 @@ function MenuGroup({ title, sidebarOpen }) {
   );
 }
 
-function NavItem({ icon: Icon, label, path, active = false, expanded, onClick, isSmallScreen }) {
+function NavItem({ icon: Icon, label, path, active = false, expanded, onClick }) {
   return (
     <Link
       to={path}
       onClick={onClick}
       className={`flex items-center py-2 ${expanded ? "px-4" : "px-0 justify-center"} ${
-        active ? "bg-green-200 text-green-900 font-semibold" : "text-green-700 hover:bg-green-100"
+        active ? "bg-green-100 text-green-900 font-semibold" : "text-green-700 hover:bg-green-50"
       } transition-colors duration-200 rounded-md my-1`}
     >
-      <span className={`${isSmallScreen ? 'text-lg' : 'text-xl'}`}>
-        <Icon size={isSmallScreen ? 18 : 24} />
-      </span>
+      <Icon size={20} />
       {expanded && <span className="ml-3 text-sm">{label}</span>}
     </Link>
   );

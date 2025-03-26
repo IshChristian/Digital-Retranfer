@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock } from "lucide-react";
 import axios from "axios";
 
@@ -151,9 +151,9 @@ function Login({ setIsAuthenticated }) {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-green-600 hover:text-green-500">
+              <Link to={"/forgotten-password"} className="font-medium text-green-600 hover:text-green-500">
                 Forgot password?
-              </a>
+              </Link>
             </div>
           </div>
 

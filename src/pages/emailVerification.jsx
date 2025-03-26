@@ -27,24 +27,32 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
     },
   });
 
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const handleVerifyEmail = async () => {
     try {
       setIsLoading(true);
       setError("");
-      const response = await axiosInstance.get(`https://digitalbackend-uobz.onrender.com/api/v1/users/code/${email}`);
+      
+      if (!validateEmail(email)) {
+        throw new Error("Please enter a valid email address");
+      }
+
+      const response = await axiosInstance.post(`/users/code/${email}`);
       
       if (response.data.success && response.data.code === code) {
         setIsVerified(true);
         setNeedsVerification(false);
-        // Update user's verification status
         await axiosInstance.put(`/users/${Cookies.get("userID")}`, { code: "verified" });
-        // Redirect to originally requested page or home
         navigate(location.state?.from?.pathname || "/");
       } else {
         throw new Error("Invalid verification code");
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      setError(err.response?.data?.message || err.message || "Verification failed");
     } finally {
       setIsLoading(false);
     }
@@ -54,10 +62,20 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
     try {
       setIsLoading(true);
       setError("");
-      await axiosInstance.post("https://digitalbackend-uobz.onrender.com/api/v1/users/check", { email });
-      setActiveTab("verify");
+      
+      if (!validateEmail(email)) {
+        throw new Error("Please enter a valid email address");
+      }
+
+      const response = await axiosInstance.post("/users/check", { email });
+      
+      if (response.data.success) {
+        setActiveTab("verify");
+      } else {
+        throw new Error(response.data.message || "Failed to request code");
+      }
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      setError(err.response?.data?.message || err.message || "Failed to request verification code");
     } finally {
       setIsLoading(false);
     }
@@ -68,11 +86,15 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
       setIsLoading(true);
       setError("");
       
+      if (!validateEmail(email)) {
+        throw new Error("Please enter a valid email address");
+      }
+
       if (newPassword !== confirmPassword) {
         throw new Error("Passwords don't match");
       }
 
-      const response = await axiosInstance.put(`https://digitalbackend-uobz.onrender.com/api/v1/users/resetPassword/${email}`, {
+      const response = await axiosInstance.put(`/users/resetPassword/${email}`, {
         newPassword,
         confirmPassword
       });
@@ -84,7 +106,7 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
         throw new Error(response.data.message || "Password reset failed");
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      setError(err.response?.data?.message || err.message || "Password reset failed");
     } finally {
       setIsLoading(false);
     }
@@ -105,49 +127,6 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
   return (
     <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        {activeTab !== "feedback" && (
-          <div className="flex justify-between items-center mb-6">
-            {activeTab !== "request" && (
-              <button
-                onClick={handleGoBack}
-                className="text-green-600 hover:text-green-800 flex items-center"
-              >
-                <ArrowLeft size={18} className="mr-1" />
-                Back
-              </button>
-            )}
-            <h2 className="text-2xl font-bold text-green-600 text-center flex-grow">
-              {activeTab === "request" && "Request Verification Code"}
-              {activeTab === "verify" && "Verify Email Address"}
-              {activeTab === "reset" && "Reset Password"}
-            </h2>
-          </div>
-        )}
-
-        {/* Tabs */}
-        {activeTab !== "feedback" && (
-          <div className="flex border-b border-gray-200 mb-6">
-            <button
-              className={`py-2 px-4 font-medium ${activeTab === "request" ? "text-green-600 border-b-2 border-green-600" : "text-gray-500"}`}
-              onClick={() => setActiveTab("request")}
-            >
-              Request Code
-            </button>
-            <button
-              className={`py-2 px-4 font-medium ${activeTab === "verify" ? "text-green-600 border-b-2 border-green-600" : "text-gray-500"}`}
-              onClick={() => setActiveTab("verify")}
-            >
-              Verify Email
-            </button>
-            <button
-              className={`py-2 px-4 font-medium ${activeTab === "reset" ? "text-green-600 border-b-2 border-green-600" : "text-gray-500"}`}
-              onClick={() => setActiveTab("reset")}
-            >
-              Reset Password
-            </button>
-          </div>
-        )}
-
         {/* Request Code Tab */}
         {activeTab === "request" && (
           <div>
@@ -159,15 +138,19 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                disabled
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(""); // Clear error when typing
+                }}
+                className={`w-full px-3 py-2 border ${error && !validateEmail(email) ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-green-500`}
               />
+              {error && !validateEmail(email) && (
+                <p className="text-red-500 text-sm mt-1">{error}</p>
+              )}
             </div>
-            {error && <p className="text-red-500 mb-4">{error}</p>}
             <button
               onClick={handleRequestCode}
-              disabled={isLoading}
+              disabled={isLoading || !validateEmail(email)}
               className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md disabled:bg-green-300"
             >
               {isLoading ? "Sending..." : "Send Verification Code"}
@@ -186,15 +169,18 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
               <input
                 type="text"
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                onChange={(e) => {
+                  setCode(e.target.value);
+                  setError("");
+                }}
+                className={`w-full px-3 py-2 border ${error ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-green-500`}
                 placeholder="Enter 6-digit code"
               />
+              {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
             </div>
-            {error && <p className="text-red-500 mb-4">{error}</p>}
             <button
               onClick={handleVerifyEmail}
-              disabled={isLoading}
+              disabled={isLoading || !code}
               className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md disabled:bg-green-300"
             >
               {isLoading ? "Verifying..." : "Verify Email"}

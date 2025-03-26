@@ -275,7 +275,7 @@ const NotificationsPage = () => {
 
       {/* Notification Detail Modal */}
       {isModalOpen && currentNotification && (
-        <div className="fixed inset-0 bg-green-300 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
               <h2 className="text-xl font-semibold text-green-700">

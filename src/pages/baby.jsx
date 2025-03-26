@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Search, 
   Plus, 
@@ -10,7 +10,11 @@ import {
   Check, 
   AlertTriangle,
   Save,
-  Baby
+  Baby,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from "lucide-react";
 import Swal from 'sweetalert2';
 import axios from "axios";
@@ -20,9 +24,16 @@ const BornPage = () => {
   const [borns, setBorns] = useState([]);
   const [filteredBorns, setFilteredBorns] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortByDate, setSortByDate] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  
+  const [sortConfig, setSortConfig] = useState({ 
+    key: 'dateOfBirth', 
+    direction: 'desc' 
+  });
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [showSorting, setShowSorting] = useState(false);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   // Address data states
   const [sectors, setSectors] = useState([]);
   const [cells, setCells] = useState([]);
@@ -35,6 +46,7 @@ const BornPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [currentBorn, setCurrentBorn] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Role-based access
   const [userRole, setUserRole] = useState(Cookies.get('role') || '');
@@ -66,6 +78,36 @@ const BornPage = () => {
     ],
   });
 
+  const sortedAndFilteredBorns = useMemo(() => {
+    let result = [...filteredBorns];
+  
+    // Filter by status
+    if (filterStatus !== 'all') {
+      result = result.filter(born => born.leave === filterStatus);
+    }
+  
+    // Sorting
+    result.sort((a, b) => {
+      if (sortConfig.key) {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+        
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  
+    return result;
+  }, [filteredBorns, sortConfig, filterStatus]);
+  
+  // Pagination calculations
+  const paginatedBorns = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedAndFilteredBorns.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedAndFilteredBorns, currentPage, itemsPerPage]);
+  
+
   // Setup axios instance with token
   const API_URL = "https://digitalbackend-uobz.onrender.com/api/v1/borns";
   const token = Cookies.get("token");
@@ -83,6 +125,10 @@ const BornPage = () => {
     fetchAddressData();
     fetchHealthCenters();
   }, []);
+
+
+  // Total pages calculation
+  const totalPages = Math.ceil(sortedAndFilteredBorns.length / itemsPerPage);
 
   // Fetch all born records
   const fetchBorns = async () => {
@@ -146,17 +192,56 @@ const BornPage = () => {
     try {
       const response = await axios.get(
         'https://digitalbackend-uobz.onrender.com/api/v1/healthcenters',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+      
+      // Check for duplicate IDs
+      const ids = response.data.map(hc => hc.id);
+      if (new Set(ids).size !== ids.length) {
+        console.error("Duplicate health center IDs found!", ids);
+      }
+      
       setHealthCenters(response.data || []);
     } catch (err) {
       showAlert('error', err.response?.data?.message || err.message);
     }
   };
+
+  // Sorting handler
+  // Sorting handler
+const handleSort = (key) => {
+  setSortConfig(prev => ({
+    key,
+    direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+  }));
+  setCurrentPage(1);
+};
+
+// Enhanced search handler
+const handleSearch = (e) => {
+  const value = e.target.value;
+  setSearchTerm(value);
+  setCurrentPage(1);
+  
+  if (value.trim() === '') {
+    setFilteredBorns(borns);
+  } else {
+    const filtered = borns.filter(born => 
+      born.motherName.toLowerCase().includes(value.toLowerCase()) ||
+      (born.babies && born.babies.some(baby => 
+        baby.name.toLowerCase().includes(value.toLowerCase())
+      )) ||
+      born.motherPhone.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredBorns(filtered);
+  }
+};
+
+/// Pagination handlers
+const goToFirstPage = () => setCurrentPage(1);
+const goToLastPage = () => setCurrentPage(totalPages);
+const goToPreviousPage = () => setCurrentPage(Math.max(1, currentPage - 1));
+const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1));
 
   // Handle sector change
   const handleSectorChange = (e) => {
@@ -198,35 +283,22 @@ const BornPage = () => {
     });
   };
 
-  // Handle search
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    if (value.trim() === '') {
-      setFilteredBorns(borns);
-    } else {
-      const filtered = borns.filter(born => 
-        born.motherName.toLowerCase().includes(value.toLowerCase()) ||
-        (born.babies && born.babies.some(baby => 
-          baby.name.toLowerCase().includes(value.toLowerCase())
-        )
-      ));
-      setFilteredBorns(filtered);
-    }
-  };
-
   // Create new born record
   const createBorn = async () => {
     try {
       setIsLoading(true);
-      await axiosInstance.post("/", formData);
-      await fetchBorns();
-      setIsAddModalOpen(false);
-      resetForm();
-      showAlert('success', 'Born record added successfully');
+      const response = await axiosInstance.post("/", formData);
+      
+      if (response.status === 201) {
+        await fetchBorns();
+        setIsAddModalOpen(false);
+        resetForm();
+        showAlert('success', 'Born record added successfully');
+      }
     } catch (err) {
-      showAlert('error', err.response?.data?.message || err.message);
+      console.error("Error creating born record:", err);
+      showAlert('error', err.response?.data?.message || 
+               err.message || 'Failed to create born record');
     } finally {
       setIsLoading(false);
     }
@@ -235,6 +307,7 @@ const BornPage = () => {
   // Update born record
   const updateBorn = async () => {
     if (!currentBorn?.id) return;
+    
     try {
       setIsLoading(true);
       const dataToSend = {
@@ -245,13 +318,18 @@ const BornPage = () => {
         }))
       };
       
-      await axiosInstance.put(`/${currentBorn.id}`, dataToSend);
-      await fetchBorns();
-      setIsEditMode(false);
-      setIsViewModalOpen(false);
-      showAlert('success', 'Born record updated successfully');
+      const response = await axiosInstance.put(`/${currentBorn.id}`, dataToSend);
+      
+      if (response.status === 200) {
+        await fetchBorns();
+        setIsEditMode(false);
+        setIsViewModalOpen(false);
+        showAlert('success', 'Born record updated successfully');
+      }
     } catch (err) {
-      showAlert('error', err.response?.data?.message || err.message);
+      console.error("Error updating born record:", err);
+      showAlert('error', err.response?.data?.message || 
+               err.message || 'Failed to update born record');
     } finally {
       setIsLoading(false);
     }
@@ -477,79 +555,148 @@ const BornPage = () => {
 
   // Check if user has Pediatrition role
   const isPediatrition = userRole === 'pediatrition';
-  
+
   return (
-    <div className="bg-white min-h-screen p-6">
+    <div className="bg-white min-h-screen p-4 md:p-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-green-600">Born Records Management</h1>
         <p className="text-gray-600">Manage born records in the system</p>
       </div>
       
-      {/* Filters and Actions */}
+      {/* Advanced Filters and Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div className="flex items-center gap-4">
-          <div className="relative w-full md:w-64">
-            <input
-              type="text"
-              placeholder="Search by mother or baby name..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={searchTerm}
-              onChange={handleSearch}
-            />
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="sortByDate"
-              checked={sortByDate}
-              onChange={() => setSortByDate(!sortByDate)}
-              className="rounded text-green-600 focus:ring-green-500 mr-2"
-            />
-            <label htmlFor="sortByDate" className="text-sm text-gray-700">
-              Sort by newest
-            </label>
-          </div>
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
+        {/* Search Input */}
+        <div className="relative w-full md:w-64">
+          <input
+            type="text"
+            placeholder="Search by name, phone..."
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
+            value={searchTerm}
+            onChange={handleSearch}
+            aria-label="Search"
+          />
+          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
         </div>
-        
-        {isPediatrition && (
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-            onClick={() => {
-              resetForm();
-              setIsAddModalOpen(true);
-            }}
-            disabled={isLoading}
-          >
-            <Plus size={18} />
-            New Born
-          </button>
+
+        {/* Status Filter */}
+        {/* Status Filter */}
+      <div className="relative">
+        <select
+          value={filterStatus}
+          onChange={(e) => {
+            setFilterStatus(e.target.value);
+            setShowSorting(false); // Hide sorting when filter is applied
+          }}
+          className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
+          aria-label="Filter by status"
+        >
+          <option value="all">All Status</option>
+          <option value="yes">Discharged</option>
+          <option value="no">Not Discharged</option>
+        </select>
+      </div>
+
+      {/* Sorting Options */}
+      <div className="relative">
+        <button
+          onClick={() => setShowSorting(!showSorting)}
+          className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
+          aria-label="Toggle sorting options"
+        >
+          Sort Options
+        </button>
+        {showSorting && (
+          <div className="absolute z-10 bg-white border border-gray-300 rounded-lg mt-1 p-2">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-green-700 mb-2">Sort by:</span>
+              {['dateOfBirth', 'motherName', 'leave'].map((key) => (
+                <label key={key} className="flex items-center gap-1 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={sortConfig.key === key}
+                    onChange={() => handleSort(key)}
+                    className="rounded text-green-600 focus:ring-green-500"
+                    aria-label={`Sort by ${key}`}
+                  />
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
+                  {sortConfig.key === key && (
+                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
         )}
       </div>
+    </div>
+
+    {isPediatrition && (
+      <button
+        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors w-full md:w-auto justify-center"
+        onClick={() => {
+          resetForm();
+          setIsAddModalOpen(true);
+        }}
+        disabled={isLoading}
+      >
+        <Plus size={18} />
+        New Born
+      </button>
+    )}
+  </div>
       
       {/* Born Records Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {isLoading && (
-          <div className="p-4 text-center text-gray-500">
-            Loading...
-          </div>
-        )}
-        
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-green-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Mother</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Babies</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Actions</th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider cursor-pointer hover:bg-green-100"
+                  onClick={() => handleSort('dateOfBirth')}
+                >
+                  Date 
+                  {sortConfig.key === 'dateOfBirth' && (
+                    <span className="ml-2">
+                      {sortConfig.direction === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider cursor-pointer hover:bg-green-100"
+                  onClick={() => handleSort('motherName')}
+                >
+                  Mother
+                  {sortConfig.key === 'motherName' && (
+                    <span className="ml-2">
+                      {sortConfig.direction === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Babies
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider cursor-pointer hover:bg-green-100"
+                  onClick={() => handleSort('leave')}
+                >
+                  Leave Status
+                  {sortConfig.key === 'leave' && (
+                    <span className="ml-2">
+                      {sortConfig.direction === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredBorns.length > 0 ? (
-                filteredBorns.map((born) => (
+              {paginatedBorns.length > 0 ? (
+                paginatedBorns.map((born) => (
                   <tr key={born.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
@@ -573,9 +720,9 @@ const BornPage = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        born.status === "go home" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                        born.leave === "yes" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
                       }`}>
-                        {born.status}
+                        {born.leave}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -607,6 +754,49 @@ const BornPage = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex flex-col md:flex-row justify-between items-center p-4 bg-gray-50">
+          <div className="text-sm text-gray-700 mb-2 md:mb-0">
+            Showing {' '}
+            {(currentPage - 1) * itemsPerPage + 1} -{' '}
+            {Math.min(currentPage * itemsPerPage, sortedAndFilteredBorns.length)} {' '}
+            of {sortedAndFilteredBorns.length} records
+          </div>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={goToFirstPage} 
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            >
+              <ChevronsLeft size={18} />
+            </button>
+            <button 
+              onClick={goToPreviousPage} 
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className="px-4 py-2 bg-green-100 rounded-lg">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button 
+              onClick={goToNextPage} 
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            >
+              <ChevronRight size={18} />
+            </button>
+            <button 
+              onClick={goToLastPage} 
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            >
+              <ChevronsRight size={18} />
+            </button>
+          </div>
         </div>
       </div>
       
@@ -667,92 +857,114 @@ const BornPage = () => {
 
       {/* View/Edit Born Record Modal */}
       {isViewModalOpen && currentBorn && (
-        <div className="fixed inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
-              <h2 className="text-xl font-semibold text-green-700">
-                {isEditMode ? 'Edit Born Record' : 'Born Record Details'}
-              </h2>
-              <div className="flex items-center gap-2">
-                {!isEditMode && isPediatrition && (
-                  <button 
-                    className="text-green-600 hover:text-green-900"
-                    onClick={() => setIsEditMode(true)}
-                    disabled={isLoading}
-                  >
-                    <Edit size={20} />
-                  </button>
-                )}
-                <button 
-                  className="text-gray-400 hover:text-gray-600"
-                  onClick={() => {
-                    setIsViewModalOpen(false);
-                    setIsEditMode(false);
-                    setCurrentBorn(null);
-                  }}
-                  disabled={isLoading}
-                >
-                  <X size={24} />
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6">
-              {isEditMode ? (
-                <EditForm 
-                  formData={formData} 
-                  handleChange={handleChange}
-                  handleBabyChange={handleBabyChange}
-                  handleMedicationChange={handleMedicationChange}
-                  addBaby={addBaby}
-                  removeBaby={removeBaby}
-                  addMedication={addMedication}
-                  removeMedication={removeMedication}
-                  sectors={sectors}
-                  cells={cells}
-                  villages={villages}
-                  healthCenters={healthCenters}
-                  handleSectorChange={handleSectorChange}
-                  handleCellChange={handleCellChange}
-                  handleVillageChange={handleVillageChange}
-                />
-              ) : (
-                <ViewDetails 
-                  born={currentBorn} 
-                  sectors={sectors} 
-                  cells={cells} 
-                  villages={villages} 
-                  healthCenters={healthCenters} 
-                  getNameFromId={getNameFromId}
-                />
-              )}
-            </div>
-            
-            <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-2">
-              <button
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                onClick={() => {
-                  setIsViewModalOpen(false);
-                  setIsEditMode(false);
-                  setCurrentBorn(null);
-                }}
-                disabled={isLoading}
-              >
-                {isEditMode ? 'Cancel' : 'Close'}
-              </button>
-              {isEditMode && isPediatrition && (
-                <button
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300"
-                  onClick={updateBorn}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Updating...' : 'Update Record'}
-                </button>
-              )}
-            </div>
-          </div>
+  <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg w-full max-w-md max-h-screen overflow-y-auto">
+      <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
+        <h2 className="text-xl font-semibold text-green-700">
+          {isEditMode ? 'Edit Born Record' : 'Born Record Details'}
+        </h2>
+        <div className="flex items-center gap-2">
+          {!isEditMode && isPediatrition && (
+            <button 
+              className="text-green-600 hover:text-green-900"
+              onClick={() => setIsEditMode(true)}
+              disabled={isLoading}
+            >
+              <Edit size={20} />
+            </button>
+          )}
+          <button 
+            className="text-gray-400 hover:text-gray-600"
+            onClick={() => {
+              setIsViewModalOpen(false);
+              setIsEditMode(false);
+              setCurrentBorn(null);
+            }}
+            disabled={isLoading}
+          >
+            <X size={24} />
+          </button>
         </div>
-      )}
+      </div>
+      
+      <div className="p-6 space-y-4">
+        {isEditMode ? (
+          <div className="space-y-4">
+            {/* Simplified edit form for the modal */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name</label>
+              <input
+                type="text"
+                name="motherName"
+                value={formData.motherName}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Leave Status</label>
+              <select
+                name="leave"
+                value={formData.leave}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+              >
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            
+            {/* Add other fields as needed */}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name</label>
+              <p className="text-gray-800">{currentBorn.motherName}</p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Leave Status</label>
+              <p className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                currentBorn.leave === "yes" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+              }`}>
+                {currentBorn.leave}
+              </p>
+            </div>
+            
+            {/* Add other fields as needed */}
+          </div>
+        )}
+      </div>
+      
+      <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-2">
+        <button
+          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          onClick={() => {
+            setIsViewModalOpen(false);
+            setIsEditMode(false);
+            setCurrentBorn(null);
+          }}
+          disabled={isLoading}
+        >
+          {isEditMode ? 'Cancel' : 'Close'}
+        </button>
+        {isEditMode && isPediatrition && (
+          <button
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300"
+            onClick={updateBorn}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Updating...' : 'Update Record'}
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
       
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
@@ -1020,9 +1232,9 @@ const EditForm = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
               required
             >
-              {healthCenters.map((hc) => (
-                <option key={`hc-${hc.id}`} value={hc.id}>{hc.name}</option>
-              ))}
+              {healthCenters.map((hc, index) => (
+  <option key={`hc-${hc.id}-${index}`} value={hc.id}>{hc.name}</option>
+))}
             </select>
           </div>
           <div>
