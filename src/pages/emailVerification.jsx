@@ -41,12 +41,13 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
         throw new Error("Please enter a valid email address");
       }
 
-      const response = await axiosInstance.post(`/users/code/${email}`);
+      console.log(code);
+
+      const response = await axiosInstance.post(`/users/code/${email}`, {code});
       
-      if (response.data.success && response.data.code === code) {
+      if (response.data.code === code) {
         setIsVerified(true);
         setNeedsVerification(false);
-        await axiosInstance.put(`/users/${Cookies.get("userID")}`, { code: "verified" });
         navigate(location.state?.from?.pathname || "/");
       } else {
         throw new Error("Invalid verification code");
