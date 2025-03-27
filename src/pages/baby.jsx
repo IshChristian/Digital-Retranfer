@@ -593,8 +593,8 @@ const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1))
           aria-label="Filter by status"
         >
           <option value="all">All Status</option>
-          <option value="yes">Discharged</option>
-          <option value="no">Not Discharged</option>
+          <option value="yes">Leave Yes</option>
+          <option value="no">Leave No</option>
         </select>
       </div>
 
