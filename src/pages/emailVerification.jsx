@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { CheckCircle, XCircle, ArrowLeft } from "lucide-react";
 
-const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
-  const [activeTab, setActiveTab] = useState("verify");
+const EmailVerification = () => {
+  const [activeTab, setActiveTab] = useState("request");
   const [email, setEmail] = useState(Cookies.get("email") || "");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -15,7 +15,6 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
   const [isVerified, setIsVerified] = useState(false);
   const [isPasswordReset, setIsPasswordReset] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const API_URL = "https://digitalbackend-uobz.onrender.com/api/v1";
   const token = Cookies.get("token");
@@ -40,19 +39,25 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
       if (!validateEmail(email)) {
         throw new Error("Please enter a valid email address");
       }
-
-      console.log(code);
-
-      const response = await axiosInstance.post(`/users/code/${email}`, {code});
+  
+      if (!code) {
+        throw new Error("Please enter verification code");
+      }
+  
+      const response = await axiosInstance.post(`/users/code/${email}`, {
+        code: code
+      });
+  
+      console.log("Verification response:", response.data);
       
-      if (response.data.code === code) {
+      if (response.data.success) {
         setIsVerified(true);
-        setNeedsVerification(false);
-        navigate(location.state?.from?.pathname || "/");
+        setActiveTab("reset"); // Move to reset password tab after verification
       } else {
-        throw new Error("Invalid verification code");
+        throw new Error(response.data.message || "Verification failed");
       }
     } catch (err) {
+      console.error("Verification error:", err.response?.data || err.message);
       setError(err.response?.data?.message || err.message || "Verification failed");
     } finally {
       setIsLoading(false);
@@ -76,6 +81,7 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
         throw new Error(response.data.message || "Failed to request code");
       }
     } catch (err) {
+      console.log(err);
       setError(err.response?.data?.message || err.message || "Failed to request verification code");
     } finally {
       setIsLoading(false);
@@ -102,7 +108,9 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
 
       if (response.data.success) {
         setIsPasswordReset(true);
-        setActiveTab("feedback");
+        setTimeout(() => {
+          navigate("/login"); // Redirect to login after successful reset
+        }, 2000);
       } else {
         throw new Error(response.data.message || "Password reset failed");
       }
@@ -121,13 +129,44 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
     }
   };
 
-  const handleContinueToApp = () => {
-    navigate("/");
-  };
-
   return (
     <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        {/* Tabs Navigation */}
+        <div className="flex border-b border-gray-200 mb-6">
+          <button
+            className={`py-2 px-4 font-medium text-sm ${activeTab === "request" ? "text-green-600 border-b-2 border-green-600" : "text-gray-500 hover:text-gray-700"}`}
+            onClick={() => setActiveTab("request")}
+          >
+            Request Code
+          </button>
+          <button
+            className={`py-2 px-4 font-medium text-sm ${activeTab === "verify" ? "text-green-600 border-b-2 border-green-600" : "text-gray-500 hover:text-gray-700"}`}
+            onClick={() => setActiveTab("verify")}
+            disabled={!email}
+          >
+            Verify Email
+          </button>
+          <button
+            className={`py-2 px-4 font-medium text-sm ${activeTab === "reset" ? "text-green-600 border-b-2 border-green-600" : "text-gray-500 hover:text-gray-700"}`}
+            onClick={() => setActiveTab("reset")}
+            disabled={!isVerified}
+          >
+            Reset Password
+          </button>
+        </div>
+
+        {/* Back button for verify and reset tabs */}
+        {(activeTab === "verify" || activeTab === "reset") && (
+          <button
+            onClick={handleGoBack}
+            className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+          >
+            <ArrowLeft className="h-5 w-5 mr-1" />
+            Back
+          </button>
+        )}
+
         {/* Request Code Tab */}
         {activeTab === "request" && (
           <div>
@@ -141,7 +180,7 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  setError(""); // Clear error when typing
+                  setError("");
                 }}
                 className={`w-full px-3 py-2 border ${error && !validateEmail(email) ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-green-500`}
               />
@@ -226,38 +265,14 @@ const EmailVerification = ({ setNeedsVerification, setIsAuthenticated }) => {
           </div>
         )}
 
-        {/* Feedback Tab */}
-        {activeTab === "feedback" && (
-          <div className="text-center">
-            {isPasswordReset ? (
-              <>
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-green-600 mb-2">Password Reset Successful</h3>
-                <p className="text-gray-600 mb-6">
-                  Your password has been updated successfully. You can now login with your new password.
-                </p>
-                <button
-                  onClick={handleContinueToApp}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md"
-                >
-                  Continue to App
-                </button>
-              </>
-            ) : (
-              <>
-                <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-red-600 mb-2">Password Reset Failed</h3>
-                <p className="text-gray-600 mb-6">
-                  {error || "There was an error resetting your password. Please try again."}
-                </p>
-                <button
-                  onClick={() => setActiveTab("reset")}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md"
-                >
-                  Try Again
-                </button>
-              </>
-            )}
+        {/* Success Message (shown temporarily before redirect) */}
+        {isPasswordReset && (
+          <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-8 rounded-lg text-center">
+              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-green-600 mb-2">Password Reset Successful</h3>
+              <p className="text-gray-600">Redirecting to login page...</p>
+            </div>
           </div>
         )}
       </div>

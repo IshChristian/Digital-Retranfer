@@ -57,8 +57,8 @@ function Login({ setIsAuthenticated }) {
         // Store token in localStorage or cookies based on your security requirements
         localStorage.setItem("token", response.data.token);
         
-        setIsAuthenticated(true);
-        // navigate("/");
+        // setIsAuthenticated(true);
+        navigate("/");
         console.log(response)
       } else {
         setError("Authentication failed. Please check your credentials.");
@@ -138,17 +138,7 @@ function Login({ setIsAuthenticated }) {
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
-              </label>
-            </div>
+            
 
             <div className="text-sm">
               <Link to={"/forgotten-password"} className="font-medium text-green-600 hover:text-green-500">

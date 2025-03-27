@@ -856,9 +856,9 @@ const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1))
       )}
 
       {/* View/Edit Born Record Modal */}
-      {isViewModalOpen && currentBorn && (
+{isViewModalOpen && currentBorn && (
   <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg w-full max-w-md max-h-screen overflow-y-auto">
+    <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
       <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
         <h2 className="text-xl font-semibold text-green-700">
           {isEditMode ? 'Edit Born Record' : 'Born Record Details'}
@@ -887,56 +887,34 @@ const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1))
         </div>
       </div>
       
-      <div className="p-6 space-y-4">
+      <div className="p-6">
         {isEditMode ? (
-          <div className="space-y-4">
-            {/* Simplified edit form for the modal */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name</label>
-              <input
-                type="text"
-                name="motherName"
-                value={formData.motherName}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Leave Status</label>
-              <select
-                name="leave"
-                value={formData.leave}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              >
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-            
-            {/* Add other fields as needed */}
-          </div>
+          <EditForm 
+            formData={formData} 
+            handleChange={handleChange}
+            handleBabyChange={handleBabyChange}
+            handleMedicationChange={handleMedicationChange}
+            addBaby={addBaby}
+            removeBaby={removeBaby}
+            addMedication={addMedication}
+            removeMedication={removeMedication}
+            sectors={sectors}
+            cells={cells}
+            villages={villages}
+            healthCenters={healthCenters}
+            handleSectorChange={handleSectorChange}
+            handleCellChange={handleCellChange}
+            handleVillageChange={handleVillageChange}
+          />
         ) : (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name</label>
-              <p className="text-gray-800">{currentBorn.motherName}</p>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Leave Status</label>
-              <p className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                currentBorn.leave === "yes" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-              }`}>
-                {currentBorn.leave}
-              </p>
-            </div>
-            
-            {/* Add other fields as needed */}
-          </div>
+          <ViewDetails 
+            born={currentBorn} 
+            sectors={sectors}
+            cells={cells}
+            villages={villages}
+            healthCenters={healthCenters}
+            getNameFromId={getNameFromId}
+          />
         )}
       </div>
       
@@ -1008,6 +986,7 @@ const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1))
   );
 };
 
+// View-only details component
 // View-only details component
 const ViewDetails = ({ born, sectors, cells, villages, healthCenters, getNameFromId }) => {
   if (!born) return <div>No data available</div>;
