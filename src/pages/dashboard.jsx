@@ -1,128 +1,185 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import Cookies from "js-cookie";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import Cookies from 'js-cookie';
+import { Pie, Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+} from 'chart.js';
 
-const WelcomePage = () => {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+// Register ChartJS components
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
+
+const Dashboard = () => {
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const token = Cookies.get('token');
 
-  // Setup axios instance with token
-  const API_URL = "https://digitalbackend-uobz.onrender.com/api/v1";
-  const token = Cookies.get("token");
-  const userId = Cookies.get("userID");
-  const axiosInstance = axios.create({
-    baseURL: API_URL,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: token ? `Bearer ${token}` : "",
-    },
+  // Using environment variable for API base URL
+  const API_BASE_URL = import.meta.env.API_KEY;
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+  const [stats, setStats] = useState({
+    users: {},
+    appointmentsByStatus: {},
+    totalUsers: 0,
+    totalBorns: 0,
+    totalBabies: 0,
+    totalHealthCenters: 0,
   });
 
-  // Fetch user data on component mount
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchStats = async () => {
+      // In your fetchStats function:
       try {
-        if (!userId) {
-          throw new Error("User ID not found in cookies");
-        }
-        
-        const { data } = await axiosInstance.get(`/users/${userId}`);
-        if (data.success) {
-          setUser(data.user);
-        } else {
-          throw new Error(data.message || "Failed to fetch user data");
-        }
+        const response = await axios.get(`${API_BASE_URL}/users/statistics`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setStats({
+          users: response.data?.users || {},
+          appointmentsByStatus: response.data?.appointmentsByStatus || {},
+          totalUsers: response.data?.totalUsers || 0,
+          totalBorns: response.data?.totalBorns || 0,
+          totalBabies: response.data?.totalBabies || 0,
+          totalHealthCenters: response.data?.totalHealthCenters || 0,
+        });
       } catch (err) {
-        setError(err.response?.data?.message || err.message);
-      } finally {
-        setIsLoading(false);
+        setError(err.message);
+        setStats((prev) => ({ ...prev })); // Maintain existing data
       }
     };
 
-    fetchUserData();
-  }, [userId]);
+    fetchStats();
+  }, [token, API_BASE_URL]);
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  if (loading) return <div className="text-center py-8">Loading dashboard...</div>;
+  if (error) return <div className="text-center py-8 text-red-500">Error: {error}</div>;
+  if (!stats) return <div className="text-center py-8">No data available</div>;
+
+  // Prepare data for charts
+  const userRolesData = {
+    labels: Object.keys(stats.users),
+    datasets: [
+      {
+        data: Object.values(stats.users),
+        backgroundColor: COLORS,
+        borderWidth: 1,
+      },
+    ],
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-green-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-green-800">Loading user information...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-green-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-          <h2 className="text-2xl font-bold text-green-600 mb-4">Error</h2>
-          <p className="text-red-500 mb-6">{error}</p>
-          <p className="text-gray-600">Please try again later or contact support.</p>
-        </div>
-      </div>
-    );
-  }
+  const appointmentStatusData = {
+    labels: Object.keys(stats.appointmentsByStatus),
+    datasets: [
+      {
+        label: 'Appointments',
+        data: Object.values(stats.appointmentsByStatus),
+        backgroundColor: '#8884d8',
+        borderWidth: 1,
+      },
+    ],
+  };
 
   return (
-    <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-2xl w-full text-center">
-        {/* App Name */}
-        <h1 className="text-4xl font-bold text-green-600 mb-2">Digital Retransfer</h1>
-        <div className="h-1 bg-green-200 w-24 mx-auto mb-8"></div>
-        
-        {/* Welcome Message */}
-        <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-          Welcome back, <span className="text-green-600">{user?.firstname || 'User'}!</span>
-        </h2>
-        
-        {/* User Info Card */}
-        <div className="bg-green-100 rounded-lg p-6 mb-8 text-left max-w-md mx-auto">
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-green-600 text-white rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">
-              {user?.firstname?.charAt(0)}{user?.lastname?.charAt(0)}
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <p className="text-gray-700">
-              <span className="font-semibold">Name:</span> {user?.firstname} {user?.lastname}
-            </p>
-            <p className="text-gray-700">
-              <span className="font-semibold">Email:</span> {user?.email}
-            </p>
-            <p className="text-gray-700">
-              <span className="font-semibold">Role:</span> <span className="capitalize">{user?.role}</span>
-            </p>
-            <p className="text-gray-700">
-              <span className="font-semibold">Status:</span> <span className="capitalize">{user?.status}</span>
-            </p>
-            <p className="text-gray-700">
-              <span className="font-semibold">Member since:</span> {formatDate(user?.createdAt)}
-            </p>
-          </div>
-        </div>
-        
-        {/* App Description */}
-        <div className="text-gray-600 mb-8">
-          <p className="mb-4">
-            Thank you for using <span className="font-semibold text-green-600">Digital Retransfer</span>, your trusted platform for seamless data management and transfer.
-          </p>
-        </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard title="Total Users" value={stats.totalUsers} />
+        <StatCard title="Total Born Records" value={stats.totalBorns} />
+        <StatCard title="Total Babies" value={stats.totalBabies} />
+        <StatCard title="Health Centers" value={stats.totalHealthCenters} />
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <ChartContainer title="User Roles Distribution">
+          <Pie
+            data={userRolesData}
+            options={{
+              plugins: {
+                legend: {
+                  position: 'right',
+                },
+                tooltip: {
+                  callbacks: {
+                    label: (context) => {
+                      const label = context.label || '';
+                      const value = context.raw || 0;
+                      const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                      const percentage = Math.round((value / total) * 100);
+                      return `${label}: ${value} (${percentage}%)`;
+                    },
+                  },
+                },
+              },
+            }}
+          />
+        </ChartContainer>
+
+        <ChartContainer title="Appointment Status">
+          <Bar
+            data={appointmentStatusData}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'top',
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                },
+              },
+            }}
+          />
+        </ChartContainer>
+      </div>
+
+      {/* Detailed Stats */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <StatsList title="User Roles Breakdown" data={stats.users} />
+        <StatsList title="Appointment Status" data={stats.appointmentsByStatus} />
       </div>
     </div>
   );
 };
 
-export default WelcomePage;
+// Reusable components remain the same
+const StatCard = ({ title, value }) => (
+  <div className="bg-white p-4 rounded-lg shadow">
+    <h3 className="text-gray-500">{title}</h3>
+    <p className="text-3xl font-bold">{value}</p>
+  </div>
+);
+
+const ChartContainer = ({ title, children }) => (
+  <div className="bg-white p-4 rounded-lg shadow">
+    <h2 className="text-xl font-semibold mb-4">{title}</h2>
+    <div className="h-64 flex justify-center">{children}</div>
+  </div>
+);
+
+const StatsList = ({ title, data }) => (
+  <div className="bg-white p-4 rounded-lg shadow">
+    <h2 className="text-xl font-semibold mb-4">{title}</h2>
+    <ul>
+      {Object.entries(data).map(([key, value]) => (
+        <li key={key} className="flex justify-between py-2 border-b">
+          <span className="capitalize">{key.replace(/_/g, ' ')}</span>
+          <span className="font-medium">{value}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
+export default Dashboard;

@@ -1,37 +1,26 @@
-import { useState, useEffect } from "react";
-import { 
-  Search, 
-  Trash2, 
-  Eye, 
-  X, 
-  Check, 
-  Bell, 
-  BellOff,
-  Mail,
-  MailOpen,
-  Trash
-} from "lucide-react";
-import axios from "axios";
-import Cookies from "js-cookie";
-import Swal from "sweetalert2";
+import { useState, useEffect } from 'react';
+import { Search, Trash2, Eye, X, Check, Bell, BellOff, Mail, MailOpen, Trash } from 'lucide-react';
+import axios from 'axios';
+import Cookies from 'js-cookie';
+import Swal from 'sweetalert2';
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [filteredNotifications, setFilteredNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentNotification, setCurrentNotification] = useState(null);
 
   // Setup axios instance with token
-  const API_URL = "https://digitalbackend-uobz.onrender.com/api/v1";
-  const token = Cookies.get("token");
+  const API_URL = import.meta.env.API_KEY;
+  const token = Cookies.get('token');
   const axiosInstance = axios.create({
     baseURL: API_URL,
     headers: {
-      "Content-Type": "application/json",
-      Authorization: token ? `Bearer ${token}` : "",
+      'Content-Type': 'application/json',
+      Authorization: token ? `Bearer ${token}` : '',
     },
   });
 
@@ -42,12 +31,15 @@ const NotificationsPage = () => {
 
   // Filter notifications based on search term
   useEffect(() => {
-    if (searchTerm.trim() === "") {
+    if (searchTerm.trim() === '') {
       setFilteredNotifications(notifications);
     } else {
-      const filtered = notifications.filter(notification => 
-        (notification.title && notification.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (notification.message && notification.message.toLowerCase().includes(searchTerm.toLowerCase()))
+      const filtered = notifications.filter(
+        (notification) =>
+          (notification.title &&
+            notification.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (notification.message &&
+            notification.message.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredNotifications(filtered);
     }
@@ -57,8 +49,8 @@ const NotificationsPage = () => {
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      const { data } = await axiosInstance.get("/notification");
-      
+      const { data } = await axiosInstance.get('/notification');
+
       if (data.success) {
         setNotifications(data.data || []);
         setFilteredNotifications(data.data || []);
@@ -88,7 +80,7 @@ const NotificationsPage = () => {
   // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
-      await axiosInstance.put("/notification/read-all");
+      await axiosInstance.put('/notification/read-all');
       await fetchNotifications();
       showAlert('success', 'All notifications marked as read');
     } catch (err) {
@@ -111,16 +103,16 @@ const NotificationsPage = () => {
   const deleteAllNotifications = async () => {
     Swal.fire({
       title: 'Are you sure?',
-      text: "This will delete all notifications and cannot be undone!",
+      text: 'This will delete all notifications and cannot be undone!',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#10B981',
       cancelButtonColor: '#EF4444',
-      confirmButtonText: 'Yes, delete all!'
+      confirmButtonText: 'Yes, delete all!',
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await axiosInstance.delete("/notification/delete-all");
+          await axiosInstance.delete('/notification/delete-all');
           await fetchNotifications();
           showAlert('success', 'All notifications deleted');
         } catch (err) {
@@ -136,7 +128,7 @@ const NotificationsPage = () => {
       icon,
       title,
       showConfirmButton: false,
-      timer: 1500
+      timer: 1500,
     });
   };
 
@@ -164,7 +156,7 @@ const NotificationsPage = () => {
           )}
         </p>
       </div>
-      
+
       {/* Filters and Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div className="relative w-full md:w-64">
@@ -177,7 +169,7 @@ const NotificationsPage = () => {
           />
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
         </div>
-        
+
         <div className="flex space-x-2">
           <button
             onClick={markAllAsRead}
@@ -197,31 +189,37 @@ const NotificationsPage = () => {
           </button>
         </div>
       </div>
-      
+
       {/* Notifications Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {isLoading && (
-          <div className="p-4 text-center text-gray-500">
-            Loading notifications...
-          </div>
-        )}
-        
+        {isLoading && <div className="p-4 text-center text-gray-500">Loading notifications...</div>}
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-green-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Preview</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Title
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Preview
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredNotifications.length > 0 ? (
                 filteredNotifications.map((notification) => (
-                  <tr 
-                    key={notification.id} 
+                  <tr
+                    key={notification.id}
                     className={`${notification.isRead ? 'bg-white' : 'bg-blue-50'} hover:bg-gray-100 cursor-pointer`}
                     onClick={() => viewNotification(notification)}
                   >
@@ -233,7 +231,9 @@ const NotificationsPage = () => {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className={`text-sm font-medium ${notification.isRead ? 'text-gray-900' : 'text-blue-800'}`}>
+                      <div
+                        className={`text-sm font-medium ${notification.isRead ? 'text-gray-900' : 'text-blue-800'}`}
+                      >
                         {notification.title}
                       </div>
                     </td>
@@ -278,17 +278,15 @@ const NotificationsPage = () => {
         <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
-              <h2 className="text-xl font-semibold text-green-700">
-                {currentNotification.title}
-              </h2>
-              <button 
+              <h2 className="text-xl font-semibold text-green-700">{currentNotification.title}</h2>
+              <button
                 className="text-gray-400 hover:text-gray-600"
                 onClick={() => setIsModalOpen(false)}
               >
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6">
               <div className="mb-4">
                 <div className="text-sm text-gray-500 mb-1">
@@ -298,12 +296,12 @@ const NotificationsPage = () => {
                   Status: {currentNotification.isRead ? 'Read' : 'Unread'}
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-4 rounded whitespace-pre-line">
                 {currentNotification.message}
               </div>
             </div>
-            
+
             <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
               <button
                 onClick={() => setIsModalOpen(false)}

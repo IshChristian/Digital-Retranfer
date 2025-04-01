@@ -31,27 +31,20 @@ const BornPage = () => {
   });
   const [filterStatus, setFilterStatus] = useState('all');
   const [showSorting, setShowSorting] = useState(false);
-  // Pagination state
-
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-
-  // Address data states
   const [sectors, setSectors] = useState([]);
   const [cells, setCells] = useState([]);
   const [villages, setVillages] = useState([]);
   const [healthCenters, setHealthCenters] = useState([]);
-
-  // Modal states
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [currentBorn, setCurrentBorn] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Role-based access
   const [userRole, setUserRole] = useState(Cookies.get('role') || '');
+  const [isAddBabyModalOpen, setIsAddBabyModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     dateOfBirth: new Date().toISOString().split('T')[0],
@@ -79,62 +72,55 @@ const BornPage = () => {
       },
     ],
   });
-
-  const sortedAndFilteredBorns = useMemo(() => {
-    let result = [...filteredBorns];
-
-    // Filter by status
-    if (filterStatus !== 'all') {
-      result = result.filter((born) => born.leave === filterStatus);
-    }
-
-    // Sorting
-    result.sort((a, b) => {
-      if (sortConfig.key) {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
-
-        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-
-    return result;
-  }, [filteredBorns, sortConfig, filterStatus]);
-
-  // Pagination calculations
-  const paginatedBorns = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return sortedAndFilteredBorns.slice(startIndex, startIndex + itemsPerPage);
-  }, [sortedAndFilteredBorns, currentPage, itemsPerPage]);
-
-  // Setup axios instance with token
-  const API_URL = 'https://digitalbackend-uobz.onrender.com/api/v1/borns';
   const token = Cookies.get('token');
+  const API_BASE_URL = 'https://digitalbackend-uobz.onrender.com/api/v1';
   const axiosInstance = axios.create({
-    baseURL: API_URL,
+    baseURL: API_BASE_URL, // Not API_BASE_URL + '/borns'
     headers: {
       'Content-Type': 'application/json',
       Authorization: token ? `Bearer ${token}` : '',
     },
   });
 
-  // Fetch all data on component mount
+  // Memoized sorted and filtered data
+  const sortedAndFilteredBorns = useMemo(() => {
+    let result = [...filteredBorns];
+
+    if (filterStatus !== 'all') {
+      result = result.filter((born) => born.leave === filterStatus);
+    }
+
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [filteredBorns, sortConfig, filterStatus]);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedAndFilteredBorns.length / itemsPerPage);
+  const paginatedBorns = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedAndFilteredBorns.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedAndFilteredBorns, currentPage, itemsPerPage]);
+
+  // Fetch data on mount
   useEffect(() => {
     fetchBorns();
     fetchAddressData();
     fetchHealthCenters();
   }, []);
 
-  // Total pages calculation
-  const totalPages = Math.ceil(sortedAndFilteredBorns.length / itemsPerPage);
-
-  // Fetch all born records
   const fetchBorns = async () => {
     try {
       setIsLoading(true);
-      const { data } = await axiosInstance.get('/');
+      const { data } = await axiosInstance.get('/borns');
       setBorns(data || []);
       setFilteredBorns(data || []);
     } catch (err) {
@@ -145,9 +131,9 @@ const BornPage = () => {
   };
 
   const fetchFeedback = async (born) => {
-    const feedbacks = {};
     if (!born?.appointments?.length) return;
 
+    const feedbacks = {};
     try {
       setLoadingFeedback(true);
       for (const appointment of born.appointments) {
@@ -164,26 +150,21 @@ const BornPage = () => {
           feedbacks[appointment.id] = [];
         }
       }
-    } finally {
       setFeedbackData(feedbacks);
+    } finally {
       setLoadingFeedback(false);
     }
   };
 
-  // Fetch address data (sectors, cells, villages)
   const fetchAddressData = async () => {
     try {
       const response = await axios.get('https://digitalbackend-uobz.onrender.com/api/v1/address/', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const data = response.data;
       const sectorsData = [];
-
-      if (data?.data?.length) {
-        data.data.forEach((province) => {
+      if (response.data?.data?.length) {
+        response.data.data.forEach((province) => {
           province.districts?.forEach((district) => {
             district.sectors?.forEach((sector) => {
               sectorsData.push({
@@ -197,13 +178,9 @@ const BornPage = () => {
       }
 
       setSectors(sectorsData);
-
-      // If there are sectors, get cells from first sector by default
       if (sectorsData.length > 0) {
         const firstSector = sectorsData[0];
         setCells(firstSector.cells || []);
-
-        // If there are cells, get villages from first cell by default
         if (firstSector.cells.length > 0) {
           setVillages(firstSector.cells[0].villages || []);
         }
@@ -213,28 +190,19 @@ const BornPage = () => {
     }
   };
 
-  // Fetch health centers
   const fetchHealthCenters = async () => {
     try {
       const response = await axios.get(
         'https://digitalbackend-uobz.onrender.com/api/v1/healthcenters',
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // Check for duplicate IDs
-      const ids = response.data.map((hc) => hc.id);
-      if (new Set(ids).size !== ids.length) {
-        console.error('Duplicate health center IDs found!', ids);
-      }
-
       setHealthCenters(response.data || []);
     } catch (err) {
       showAlert('error', err.response?.data?.message || err.message);
     }
   };
 
-  // Sorting handler
-  // Sorting handler
+  // Handlers
   const handleSort = (key) => {
     setSortConfig((prev) => ({
       key,
@@ -243,7 +211,6 @@ const BornPage = () => {
     setCurrentPage(1);
   };
 
-  // Enhanced search handler
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
@@ -255,21 +222,13 @@ const BornPage = () => {
       const filtered = borns.filter(
         (born) =>
           born.motherName.toLowerCase().includes(value.toLowerCase()) ||
-          (born.babies &&
-            born.babies.some((baby) => baby.name.toLowerCase().includes(value.toLowerCase()))) ||
+          born.babies?.some((baby) => baby.name.toLowerCase().includes(value.toLowerCase())) ||
           born.motherPhone.toLowerCase().includes(value.toLowerCase())
       );
       setFilteredBorns(filtered);
     }
   };
 
-  /// Pagination handlers
-  const goToFirstPage = () => setCurrentPage(1);
-  const goToLastPage = () => setCurrentPage(totalPages);
-  const goToPreviousPage = () => setCurrentPage(Math.max(1, currentPage - 1));
-  const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1));
-
-  // Handle sector change
   const handleSectorChange = (e) => {
     const sectorId = e.target.value;
     const selectedSector = sectors.find((s) => s.id == sectorId);
@@ -286,7 +245,6 @@ const BornPage = () => {
     });
   };
 
-  // Handle cell change
   const handleCellChange = (e) => {
     const cellId = e.target.value;
     const selectedCell = cells.find((c) => c.id == cellId);
@@ -301,7 +259,6 @@ const BornPage = () => {
     });
   };
 
-  // Handle village change
   const handleVillageChange = (e) => {
     setFormData({
       ...formData,
@@ -309,11 +266,10 @@ const BornPage = () => {
     });
   };
 
-  // Create new born record
   const createBorn = async () => {
     try {
       setIsLoading(true);
-      const response = await axiosInstance.post('/', formData);
+      const response = await axiosInstance.post('/borns', formData);
 
       if (response.status === 201) {
         await fetchBorns();
@@ -332,53 +288,55 @@ const BornPage = () => {
     }
   };
 
-  // Update born record
-  const updateBorn = async () => {
-    if (!currentBorn?.id) return;
+ const updateBorn = async () => {
+   if (!currentBorn?.id) return;
 
-    try {
-      setIsLoading(true);
-      const dataToSend = {
-        dateOfBirth: formData.dateOfBirth,
-        healthCenterId: formData.healthCenterId,
-        motherName: formData.motherName,
-        motherPhone: formData.motherPhone,
-        motherNationalId: formData.motherNationalId,
-        fatherNationalId: formData.fatherNationalId,
-        fatherName: formData.fatherName,
-        fatherPhone: formData.fatherPhone,
-        deliveryType: formData.deliveryType,
-        status: formData.status,
-        sector_id: formData.sector_id,
-        cell_id: formData.cell_id,
-        village_id: formData.village_id,
-      };
+   try {
+     setIsLoading(true);
+     const dataToSend = {
+       dateOfBirth: formData.dateOfBirth,
+       healthCenterId: formData.healthCenterId,
+       motherName: formData.motherName,
+       motherPhone: formData.motherPhone,
+       motherNationalId: formData.motherNationalId,
+       fatherNationalId: formData.fatherNationalId,
+       fatherName: formData.fatherName,
+       fatherPhone: formData.fatherPhone,
+       deliveryType: formData.deliveryType,
+       status: formData.status,
+       sector_id: formData.sector_id,
+       cell_id: formData.cell_id,
+       village_id: formData.village_id,
+     };
 
-      const response = await axiosInstance.put(`/${currentBorn.id}`, dataToSend);
+     // Add validation
+     if (!dataToSend.motherName || !dataToSend.motherPhone) {
+       throw new Error('Mother name and phone are required');
+     }
 
-      if (response.status === 200) {
-        await fetchBorns();
-        setIsEditMode(false);
-        setIsViewModalOpen(false);
-        showAlert('success', 'Born record updated successfully');
-      }
-    } catch (err) {
-      console.error('Error updating born record:', err);
-      showAlert(
-        'error',
-        err.response?.data?.message || err.message || 'Failed to update born record'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+     const response = await axiosInstance.put(`/borns/${currentBorn.id}`, dataToSend);
 
-  // Delete born record
+     if (response.status === 200) {
+       await fetchBorns();
+       setIsEditMode(false);
+       setIsViewModalOpen(false);
+       showAlert('success', 'Born record updated successfully');
+     }
+   } catch (err) {
+     console.error('Error updating born record:', err);
+     const errorMessage =
+       err.response?.data?.message || err.message || 'Failed to update born record (server error)';
+     showAlert('error', errorMessage);
+   } finally {
+     setIsLoading(false);
+   }
+ };
+
   const deleteBorn = async () => {
     if (!currentBorn?.id) return;
     try {
       setIsLoading(true);
-      await axiosInstance.delete(`/${currentBorn.id}`);
+      await axiosInstance.delete(`/borns/${currentBorn.id}`);
       await fetchBorns();
       setIsDeleteModalOpen(false);
       setIsViewModalOpen(false);
@@ -391,23 +349,14 @@ const BornPage = () => {
     }
   };
 
-  // Handle view details
   const handleViewDetails = async (born) => {
     try {
       setIsLoading(true);
-      const { data } = await axiosInstance.get(`/${born.id}`);
+      const { data } = await axiosInstance.get(`/borns/${born.id}`);
 
       const normalizedData = {
         ...data,
-        babies: data.babies || [
-          {
-            name: '',
-            gender: 'Male',
-            birthWeight: 0,
-            dischargebirthWeight: 0,
-            medications: [],
-          },
-        ],
+        babies: data.babies || [],
         appointments: data.appointments || [],
         medications: data.medications || [],
       };
@@ -416,7 +365,8 @@ const BornPage = () => {
       setFormData(normalizedData);
       setIsViewModalOpen(true);
       setIsEditMode(false);
-      await fetchFeedback(normalizedData); // Pass the born data to fetchFeedback
+      await fetchFeedback(normalizedData);
+      await fetchBorns();
     } catch (err) {
       showAlert('error', err.response?.data?.message || err.message);
     } finally {
@@ -424,28 +374,180 @@ const BornPage = () => {
     }
   };
 
-  const fetchBornWithAppointments = async (id) => {
-    try {
-      const { data } = await axiosInstance.get(`/${id}`);
-      const normalizedData = {
-        ...data,
-        babies: data.babies || [],
-        appointments: data.appointments || [], // Ensure appointments array exists
-      };
-      setCurrentBorn(normalizedData);
-      setFormData(normalizedData);
-    } catch (err) {
-      showAlert('error', err.response?.data?.message || err.message);
+  const handleDeleteConfirm = (born) => {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setCurrentBorn(born);
+        setIsDeleteModalOpen(true);
+      }
+    });
+  };
+
+  const handleDeleteBabyConfirm = async (babyId) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await handleDeleteBaby(currentBorn.id, babyId);
+      } catch (error) {
+        console.error('Error deleting baby:', error);
+      }
     }
   };
 
-  // Handle delete confirmation
-  const handleDeleteConfirm = (born) => {
-    setCurrentBorn(born);
-    setIsDeleteModalOpen(true);
+  const handleDeleteBaby = async (bornId, babyId) => {
+  try {
+    setIsLoading(true);
+    await axiosInstance.delete(`/babies/${babyId}`);
+
+    await Swal.fire('Deleted!', 'The baby record has been deleted.', 'success');
+    
+    // Update the current born state
+    setCurrentBorn(prev => ({
+      ...prev,
+      babies: prev.babies.filter(baby => baby.id !== babyId),
+      babyCount: prev.babyCount - 1
+    }));
+
+    // Refresh the borns list
+    await fetchBorns();
+  } catch (err) {
+    showAlert('error', err.response?.data?.message || err.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  const handleUpdateBaby = async (updatedBaby) => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.put(`/babies/${updatedBaby.id}`, updatedBaby);
+
+      if (response.status === 200) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Baby updated successfully!',
+          showConfirmButton: false,
+          timer: 1500,
+        });
+
+        // Update the current born state
+        setCurrentBorn((prev) => ({
+          ...prev,
+          babies: prev.babies.map((baby) => (baby.id === updatedBaby.id ? response.data : baby)),
+        }));
+
+        // Refresh the borns list
+        await fetchBorns();
+        return true;
+      }
+    } catch (error) {
+      console.error('Error updating baby:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed to update baby',
+        text: error.response?.data?.message || 'Please try again',
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Reset form to default values
+  const handleAddBaby = async (newBaby) => {
+  try {
+    setIsLoading(true);
+    const babyData = {
+      bornId: newBaby.bornId,
+      name: newBaby.name,
+      gender: newBaby.gender,
+      birthWeight: parseFloat(newBaby.birthWeight),
+      dischargebirthWeight: parseFloat(newBaby.dischargebirthWeight),
+      medications: newBaby.medications || []
+    };
+
+    const response = await axiosInstance.post('/babies', babyData);
+
+    // Update state and close modal immediately
+    setCurrentBorn(prev => ({
+      ...prev,
+      babies: [...prev.babies, response.data],
+      babyCount: prev.babyCount + 1
+    }));
+    
+    // Show success message after closing
+    setTimeout(() => {
+      Swal.fire({
+        icon: 'success',
+        title: 'Baby added successfully!',
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    }, 300);
+
+    return response.data;
+  } catch (error) {
+    console.error('Error adding baby:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Failed to add baby',
+      text: error.response?.data?.message || 'Please try again',
+    });
+    throw error;
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  const handleAddAppointment = async (newAppointment) => {
+    try {
+      setIsLoading(true);
+      const { bornId, babyId, ...appointmentData } = newAppointment;
+      const response = await axiosInstance.post(
+        `/appointments`, // Correct endpoint
+        appointmentData
+      );
+
+      setCurrentBorn((prev) => ({
+        ...prev,
+        appointments: [...(prev.appointments || []), response.data],
+      }));
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Appointment added successfully!',
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } catch (error) {
+      console.error('Error adding appointment:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed to add appointment',
+        text: error.response?.data?.message || 'Please try again',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Form management
   const resetForm = () => {
     setFormData({
       dateOfBirth: new Date().toISOString().split('T')[0],
@@ -475,7 +577,6 @@ const BornPage = () => {
     });
   };
 
-  // Add another baby to the form
   const addBaby = () => {
     setFormData({
       ...formData,
@@ -493,7 +594,6 @@ const BornPage = () => {
     });
   };
 
-  // Remove a baby from the form
   const removeBaby = (index) => {
     if (formData.babies.length <= 1) return;
 
@@ -505,7 +605,6 @@ const BornPage = () => {
     });
   };
 
-  // Add medication
   const addMedication = (babyIndex) => {
     setFormData((prev) => {
       const updatedBabies = [...prev.babies];
@@ -523,7 +622,6 @@ const BornPage = () => {
     });
   };
 
-  // Remove medication
   const removeMedication = (babyIndex, medIndex) => {
     setFormData((prev) => {
       const updatedBabies = [...prev.babies];
@@ -543,7 +641,6 @@ const BornPage = () => {
     });
   };
 
-  // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -552,7 +649,6 @@ const BornPage = () => {
     });
   };
 
-  // Handle baby information changes
   const handleBabyChange = (babyIndex, e) => {
     const { name, value } = e.target;
     const updatedBabies = [...formData.babies];
@@ -567,7 +663,6 @@ const BornPage = () => {
     });
   };
 
-  // Handle medication changes
   const handleMedicationChange = (babyIndex, medIndex, e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
@@ -591,7 +686,6 @@ const BornPage = () => {
     });
   };
 
-  // Show alert
   const showAlert = (icon, title) => {
     Swal.fire({
       icon,
@@ -601,57 +695,21 @@ const BornPage = () => {
     });
   };
 
-  // Get name from ID
   const getNameFromId = (id, array) => {
     const item = array.find((item) => item.id == id);
     return item ? item.name : id;
   };
 
-  // Format date
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Add these state variables to your main component
-  const [isAddBabyModalOpen, setIsAddBabyModalOpen] = useState(false);
+  // Pagination handlers
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToLastPage = () => setCurrentPage(totalPages);
+  const goToPreviousPage = () => setCurrentPage(Math.max(1, currentPage - 1));
+  const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1));
 
-  // Add these functions to your main component
-  const handleDeleteBaby = async (bornId, babyId) => {
-    try {
-      setIsLoading(true);
-      await axios.delete(`https://digitalbackend-uobz.onrender.com/api/v1/babies/${babyId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      await fetchBorns();
-      showAlert('success', 'Baby record deleted successfully');
-    } catch (err) {
-      showAlert('error', err.response?.data?.message || err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleUpdateBaby = (updatedBaby) => {
-    setCurrentBorn((prev) => ({
-      ...prev,
-      babies: prev.babies.map((baby) => (baby.id === updatedBaby.id ? updatedBaby : baby)),
-    }));
-    fetchBorns();
-  };
-
-  const handleAddBaby = (newBaby) => {
-    setCurrentBorn((prev) => ({
-      ...prev,
-      babies: [...prev.babies, newBaby],
-      babyCount: prev.babyCount + 1,
-    }));
-    fetchBorns();
-  };
-
-  // Check if user has Pediatrition role
   const isPediatrition = userRole === 'pediatrition';
 
   return (
@@ -662,7 +720,7 @@ const BornPage = () => {
         <p className="text-gray-600">Manage born records in the system</p>
       </div>
 
-      {/* Advanced Filters and Actions */}
+      {/* Filters and Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
           {/* Search Input */}
@@ -679,13 +737,12 @@ const BornPage = () => {
           </div>
 
           {/* Status Filter */}
-          {/* Status Filter */}
           <div className="relative">
             <select
               value={filterStatus}
               onChange={(e) => {
                 setFilterStatus(e.target.value);
-                setShowSorting(false); // Hide sorting when filter is applied
+                setShowSorting(false);
               }}
               className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
               aria-label="Filter by status"
@@ -801,7 +858,7 @@ const BornPage = () => {
                       <div className="text-sm text-gray-900">{born.babyCount} baby/babies</div>
                       <div className="text-sm text-gray-500">
                         {born.babies?.map((baby, index) => (
-                          <span key={`baby-${index}-${baby.name}`} className="mr-2">
+                          <span key={`baby-name-${baby.id || index}`} className="mr-2">
                             {baby.name} ({baby.gender}){index < born.babies.length - 1 ? ',' : ''}
                           </span>
                         ))}
@@ -891,15 +948,6 @@ const BornPage = () => {
           </div>
         </div>
       </div>
-
-      {isAddBabyModalOpen && (
-        <AddBabyModal
-          isOpen={isAddBabyModalOpen}
-          onClose={() => setIsAddBabyModalOpen(false)}
-          bornId={currentBorn?.id}
-          onAddBaby={handleAddBaby}
-        />
-      )}
 
       {/* Add Born Record Modal */}
       {isAddModalOpen && (
@@ -1017,14 +1065,18 @@ const BornPage = () => {
                   villages={villages}
                   healthCenters={healthCenters}
                   getNameFromId={getNameFromId}
-                  handleDeleteBaby={handleDeleteBaby}
                   onUpdateBaby={handleUpdateBaby}
                   onAddBaby={handleAddBaby}
+                  onDeleteBaby={handleDeleteBabyConfirm}
                   feedbackData={feedbackData}
                   loadingFeedback={loadingFeedback}
-                  setFeedbackData={setFeedbackData}
-                  setLoadingFeedback={setLoadingFeedback}
-                  setCurrentBorn={setCurrentBorn}
+                  onClose={() => {
+                    setIsViewModalOpen(false);
+                    setIsEditMode(false);
+                    setCurrentBorn(null);
+                  }}
+                  isLoading={isLoading}
+                  setIsLoading={setIsLoading}
                 />
               )}
             </div>
@@ -1096,12 +1148,21 @@ const BornPage = () => {
           </div>
         </div>
       )}
+
+      {/* Add Baby Modal */}
+      {isAddBabyModalOpen && (
+        <AddBabyModal
+          isOpen={isAddBabyModalOpen}
+          onClose={() => setIsAddBabyModalOpen(false)}
+          bornId={currentBorn?.id}
+          onAddBaby={handleAddBaby}
+        />
+      )}
     </div>
   );
 };
 
-// View-only details component
-
+// ViewDetails Component
 const ViewDetails = ({
   born,
   sectors,
@@ -1109,80 +1170,18 @@ const ViewDetails = ({
   villages,
   healthCenters,
   getNameFromId,
-  handleDeleteBaby,
   onUpdateBaby,
   onAddBaby,
+  onDeleteBaby,
+  feedbackData,
+  loadingFeedback,
+  onClose,
+  isLoading,
+  setIsLoading,
 }) => {
   const [addingAppointmentForBaby, setAddingAppointmentForBaby] = useState(null);
   const [isAddingBaby, setIsAddingBaby] = useState(false);
-  const [appointments, setAppointments] = useState(born.appointments || []);
-  const [feedbackData, setFeedbackData] = useState({});
-  const [loadingFeedback, setLoadingFeedback] = useState(false);
   const [editingBaby, setEditingBaby] = useState(null);
-  const token = Cookies.get('token');
-
-  const handleAddAppointment = (newAppointment) => {
-    setAppointments((prev) => [...prev, newAppointment]);
-    setAddingAppointmentForBaby(null);
-    setCurrentBorn((prev) => ({
-      ...prev,
-      appointments: [...(prev.appointments || []), newAppointment],
-    }));
-  };
-
-  const handleUpdateBaby = async (updatedBaby) => {
-    try {
-      const response = await axios.put(
-        `https://digitalbackend-uobz.onrender.com/api/v1/babies/${updatedBaby.id}`,
-        updatedBaby,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        setEditingBaby(null);
-        // Call onAddBaby to update parent component state
-        onAddBaby(response.data);
-      }
-    } catch (error) {
-      console.error('Error updating baby:', error);
-      alert('Failed to update baby. Please try again.');
-    }
-  };
-
-  // Fetch feedback for each appointment
-  useEffect(() => {
-    const fetchFeedback = async () => {
-      const feedbacks = {};
-      for (const appointment of born.appointments || []) {
-        try {
-          setLoadingFeedback(true);
-          const response = await axios.get(
-            `https://digitalbackend-uobz.onrender.com/api/v1/appointmentFeedbacks/${appointment.id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-          feedbacks[appointment.id] = response.data || [];
-        } catch (error) {
-          console.error(`Error fetching feedback for appointment ${appointment.id}:`, error);
-          feedbacks[appointment.id] = [];
-        }
-      }
-      setFeedbackData(feedbacks);
-      setLoadingFeedback(false);
-    };
-
-    if (born.appointments?.length) {
-      fetchFeedback();
-    }
-  }, [born.appointments, token]);
 
   const handleEditBaby = (baby) => {
     setEditingBaby(baby);
@@ -1192,8 +1191,6 @@ const ViewDetails = ({
     setEditingBaby(null);
   };
 
-  if (!born) return <div>No data available</div>;
-  // In your ViewDetails component, add this check at the start:
   if (!born || !born.babies) {
     return <div className="text-gray-500 p-4">No baby data available</div>;
   }
@@ -1249,7 +1246,7 @@ const ViewDetails = ({
             <span className="font-semibold">Leave Status:</span> {born.leave}
           </p>
           <p>
-            <span className="font-semibold hidden">Status:</span> {born.status}
+            <span className="font-semibold hidden">Status:</span>
           </p>
           <p>
             <span className="font-semibold">Baby Count:</span> {born.babyCount}
@@ -1271,7 +1268,7 @@ const ViewDetails = ({
           </p>
         </div>
       </div>
-      {/* // In ViewDetails component, replace the Add Baby button with: */}
+      {/* Add Baby Section */}
       <div className="mt-4">
         {!isAddingBaby ? (
           <button
@@ -1288,7 +1285,7 @@ const ViewDetails = ({
               bornId={born.id}
               onAddBaby={(newBaby) => {
                 onAddBaby(newBaby);
-                setIsAddingBaby(false);
+                setIsAddingBaby(false); // Close the form after adding
               }}
               onCancel={() => setIsAddingBaby(false)}
             />
@@ -1297,133 +1294,159 @@ const ViewDetails = ({
       </div>
       {/* Babies Section */}
       <div>
-        <h3 className="text-lg font-medium text-green-700 mb-3">Babies</h3>
-        <div className="space-y-4">
-          {born.babies?.map((baby, index) => (
-            <div key={`baby-${index}-${baby.id}`} className="bg-green-50 p-4 rounded relative">
-              <div className="absolute top-2 right-2 flex gap-2">
-                <button
-                  onClick={() => handleEditBaby(baby)}
-                  className="text-blue-600 hover:text-blue-800"
-                  title="Edit Baby"
-                >
-                  <Edit size={18} />
-                </button>
-                <button
-                  onClick={() => handleDeleteBaby(born.id, baby.id)}
-                  className="text-red-600 hover:text-red-800"
-                  title="Delete Baby"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-
+        <h3 className="text-lg font-medium text-green-700 mb-3">Babies Information</h3>
+        <div className="space-y-6">
+          {born.babies.map((baby, index) => (
+            <div key={`baby-${baby.id || index}`} className="bg-green-50 p-4 rounded-lg relative">
               {editingBaby?.id === baby.id ? (
                 <EditBabyForm
-                  baby={editingBaby}
-                  onUpdate={handleUpdateBaby}
+                  baby={baby}
+                  onUpdate={async (updatedBaby) => {
+                    const success = await onUpdateBaby(updatedBaby);
+                    if (success) {
+                      setEditingBaby(null);
+                    }
+                  }}
                   onCancel={handleCancelEdit}
+                  isLoading={isLoading}
                 />
               ) : (
                 <>
-                  <h4 className="font-semibold text-green-800 mb-2">
-                    Baby {index + 1}: {baby.name}
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                    <p>
-                      <span className="font-semibold">Gender:</span> {baby.gender}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Birth Weight:</span> {baby.birthWeight} kg
-                    </p>
-                    <p>
-                      <span className="font-semibold">Discharge Weight:</span>{' '}
-                      {baby.dischargebirthWeight} kg
-                    </p>
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <button
+                      onClick={() => handleEditBaby(baby)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="Edit baby"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => onDeleteBaby(baby.id)}
+                      className="text-red-600 hover:text-red-800"
+                      title="Delete baby"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                  <h5 className="font-semibold text-green-800 mb-2">Medications</h5>
-                  {baby.medications?.length > 0 ? (
-                    <table className="w-full">
-                      <thead className="bg-green-100">
-                        <tr>
-                          <th className="text-left py-2 px-3">Medication</th>
-                          <th className="text-left py-2 px-3">Dose</th>
-                          <th className="text-left py-2 px-3">Frequency</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {baby.medications.map((med, medIndex) => (
-                          <tr key={`med-${medIndex}`}>
-                            <td className="py-2 px-3">{med.name || '-'}</td>
-                            <td className="py-2 px-3">{med.dose || '-'}</td>
-                            <td className="py-2 px-3">{med.frequency || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <p className="text-gray-500">No medications recorded</p>
-                  )}
-                  {/* Baby's Appointments */}
-                  {baby.appointments?.length > 0 || addingAppointmentForBaby === baby.id ? (
-                    <div className="mt-4">
-                      <h5 className="font-semibold text-green-800 mb-2 flex items-center justify-between">
-                        Appointments
-                        <button
-                          onClick={() =>
-                            setAddingAppointmentForBaby(
-                              addingAppointmentForBaby === baby.id ? null : baby.id
-                            )
-                          }
-                          className="flex items-center gap-1 text-sm text-green-600 hover:text-green-800"
-                        >
-                          <Plus size={16} />
-                          Add Appointment
-                        </button>
-                      </h5>
 
-                      {addingAppointmentForBaby === baby.id && (
-                        <AddAppointmentForm
-                          bornId={born.id}
-                          babyId={baby.id}
-                          onAddAppointment={handleAddAppointment}
-                          onCancel={() => setAddingAppointmentForBaby(null)}
-                        />
-                      )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="font-semibold">
+                        Name: <span className="font-normal">{baby.name}</span>
+                      </p>
+                      <p className="font-semibold">
+                        Gender: <span className="font-normal">{baby.gender}</span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">
+                        Birth Weight: <span className="font-normal">{baby.birthWeight} kg</span>
+                      </p>
+                      <p className="font-semibold">
+                        Discharge Weight:{' '}
+                        <span className="font-normal">{baby.dischargebirthWeight} kg</span>
+                      </p>
+                    </div>
+                  </div>
 
-                      {appointments
-                        .filter((a) => a.babyId === baby.id)
-                        .map((appointment) => (
-                          <div key={appointment.id} className="mb-4 p-3 bg-white rounded">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-                              <p>
-                                <span className="font-semibold">Date:</span>{' '}
-                                {new Date(appointment.date).toLocaleDateString()}
-                              </p>
-                              <p>
-                                <span className="font-semibold">Time:</span> {appointment.time}
-                              </p>
-                              <p>
-                                <span className="font-semibold">Status:</span> {appointment.status}
-                              </p>
-                            </div>
+                  {/* Medications */}
+                  {baby.medications?.length > 0 && (
+                    <div className="mt-3">
+                      <h4 className="font-semibold text-green-800 mb-2">Medications</h4>
+                      <div className="bg-white p-2 rounded">
+                        {baby.medications.map((med, index) => (
+                          <div key={`med-${baby.id}-${index}`} className="mb-2 last:mb-0">
                             <p>
-                              <span className="font-semibold">Purpose:</span> {appointment.purpose}
+                              <span className="font-semibold">{med.name}</span>: {med.dose} (
+                              {med.frequency})
                             </p>
                           </div>
                         ))}
-                    </div>
-                  ) : (
-                    <div className="mt-4">
-                      <button
-                        onClick={() => setAddingAppointmentForBaby(baby.id)}
-                        className="flex items-center gap-1 text-sm text-green-600 hover:text-green-800"
-                      >
-                        <Plus size={16} />
-                        Add Appointment
-                      </button>
+                      </div>
                     </div>
                   )}
+
+                  {/* Appointments Section */}
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-green-800 mb-2">Appointments</h4>
+                    {baby.appoitment_feedback?.length > 0 ? (
+                      <div className="space-y-3">
+                        {baby.appoitment_feedback.map((feedback) => (
+                          <div
+                            key={`appointment-${feedback.id}`}
+                            className="bg-white p-3 rounded shadow"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                              <p>
+                                <span className="font-semibold">Date:</span>{' '}
+                                {new Date(feedback.appointment.date).toLocaleDateString()}
+                              </p>
+                              <p>
+                                <span className="font-semibold">Time:</span>{' '}
+                                {feedback.appointment.time}
+                              </p>
+                              <p>
+                                <span className="font-semibold">Purpose:</span>{' '}
+                                {feedback.appointment.purpose}
+                              </p>
+                              <p>
+                                <span className="font-semibold">Status:</span>{' '}
+                                {feedback.appointment.status}
+                              </p>
+                            </div>
+
+                            <div className="mt-2">
+                              <h5 className="font-semibold">Feedback:</h5>
+                              <div className="bg-blue-50 p-2 rounded">
+                                <p>
+                                  <span className="font-semibold">Weight:</span> {feedback.weight}{' '}
+                                  kg
+                                </p>
+                                <p>
+                                  <span className="font-semibold">Status:</span> {feedback.status}
+                                </p>
+                                <p>
+                                  <span className="font-semibold">Notes:</span> {feedback.feedback}
+                                </p>
+                                {feedback.nextAppointmentDate && (
+                                  <p>
+                                    <span className="font-semibold">Next Appointment:</span>{' '}
+                                    {new Date(feedback.nextAppointmentDate).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500">No appointments scheduled</p>
+                    )}
+
+                    {/* Add New Appointment Button */}
+                    <div className="mt-4">
+                      {addingAppointmentForBaby === baby.id ? (
+                        <AddAppointmentForm
+                          bornId={born.id}
+                          babyId={baby.id}
+                          onAddAppointment={(newAppointment) => {
+                            // Implement your add appointment logic here
+                            console.log('New appointment:', newAppointment);
+                            setAddingAppointmentForBaby(null);
+                          }}
+                          onCancel={() => setAddingAppointmentForBaby(null)}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => setAddingAppointmentForBaby(baby.id)}
+                          className="flex items-center gap-2 text-green-600 hover:text-green-800"
+                        >
+                          <Plus size={16} />
+                          Schedule New Appointment
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </>
               )}
             </div>
@@ -1434,18 +1457,17 @@ const ViewDetails = ({
   );
 };
 
-// Edit Baby Form Component
-const EditBabyForm = ({ baby, onUpdate, onCancel }) => {
-  // Add null check and provide default values
-  const initialData = baby || {
-    name: '',
-    gender: 'Male',
-    birthWeight: 0,
-    dischargebirthWeight: 0,
-    medications: [],
-  };
-
-  const [formData, setFormData] = useState(initialData);
+// EditBabyForm Component
+const EditBabyForm = ({ baby, onUpdate, onCancel, isLoading }) => {
+  const [formData, setFormData] = useState({
+    name: baby?.name || '',
+    gender: baby?.gender || 'Male',
+    birthWeight: baby?.birthWeight || 0,
+    dischargebirthWeight: baby?.dischargebirthWeight || 0,
+    medications: Array.isArray(baby?.medications) ? baby.medications : [],
+    id: baby?.id,
+    bornId: baby?.bornId,
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1454,32 +1476,33 @@ const EditBabyForm = ({ baby, onUpdate, onCancel }) => {
 
   const handleMedicationChange = (index, e) => {
     const { name, value } = e.target;
-    const updatedMedications = [...formData.medications];
-    updatedMedications[index] = { ...updatedMedications[index], [name]: value };
-    setFormData((prev) => ({ ...prev, medications: updatedMedications }));
+    setFormData((prev) => {
+      const updatedMedications = [...(prev.medications || [])];
+      updatedMedications[index] = { ...updatedMedications[index], [name]: value };
+      return { ...prev, medications: updatedMedications };
+    });
   };
 
   const addMedication = () => {
     setFormData((prev) => ({
       ...prev,
-      medications: [...prev.medications, { name: '', dose: '', frequency: '' }],
+      medications: [...(prev.medications || []), { name: '', dose: '', frequency: '' }],
     }));
   };
 
   const removeMedication = (index) => {
     setFormData((prev) => ({
       ...prev,
-      medications: prev.medications.filter((_, i) => i !== index),
+      medications: (prev.medications || []).filter((_, i) => i !== index),
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onUpdate({
-      id: baby.id,
-      bornId: baby.bornId,
-      ...formData,
-    });
+    const success = await onUpdate(formData);
+    if (success) {
+      onCancel();
+    }
   };
 
   return (
@@ -1554,7 +1577,7 @@ const EditBabyForm = ({ baby, onUpdate, onCancel }) => {
           </button>
         </div>
 
-        {formData.medications.length > 0 ? (
+        {formData.medications?.length > 0 ? (
           <table className="w-full">
             <thead className="bg-green-100">
               <tr>
@@ -1623,15 +1646,16 @@ const EditBabyForm = ({ baby, onUpdate, onCancel }) => {
         <button
           type="submit"
           className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+          disabled={isLoading}
         >
-          Update Baby
+          {isLoading ? 'Updating...' : 'Update Baby'}
         </button>
       </div>
     </form>
   );
 };
 
-// Edit form component
+// EditForm Component
 const EditForm = ({
   formData,
   handleChange,
@@ -1868,6 +1892,7 @@ const EditForm = ({
           </div>
         </div>
       </div>
+
       {!isEditMode && (
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -2030,47 +2055,31 @@ const EditForm = ({
   );
 };
 
+// AddBabyModal Component
 const AddBabyModal = ({ isOpen, onClose, bornId, onAddBaby }) => {
   const [formData, setFormData] = useState({
-    bornId: bornId,
     name: '',
     gender: 'Male',
     birthWeight: 0,
     dischargebirthWeight: 0,
-    medications: [],
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const token = Cookies.get('token');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setError(null); // Clear error when user makes changes
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setIsLoading(true);
-      const response = await axios.post(
-        `https://digitalbackend-uobz.onrender.com/api/v1/babies`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await axiosInstance.post(
+        `/babies`, // Correct endpoint
+        formData
       );
-
-      if (response.status === 200 || response.status === 201) {
-        onAddBaby(response.data);
-        onClose();
-      }
+      onAddBaby(response.data);
+      onClose();
     } catch (error) {
       console.error('Error adding baby:', error);
       alert('Failed to add baby. Please try again.');
@@ -2168,6 +2177,8 @@ const AddBabyModal = ({ isOpen, onClose, bornId, onAddBaby }) => {
     </div>
   );
 };
+
+// AddBabyForm Component
 const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
   const [formData, setFormData] = useState({
     bornId: bornId,
@@ -2175,39 +2186,52 @@ const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
     gender: 'Male',
     birthWeight: 0,
     dischargebirthWeight: 0,
+    medications: [],
   });
   const [isLoading, setIsLoading] = useState(false);
-  const token = Cookies.get('token');
 
+  // Add this handleChange function
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setIsLoading(true);
-      const response = await axios.post(
-        'https://digitalbackend-uobz.onrender.com/api/v1/babies',
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      onAddBaby(response.data);
+
+      // Validate required fields
+      if (!formData.name.trim()) {
+        throw new Error('Baby name is required');
+      }
+
+      const babyData = {
+        ...formData,
+        birthWeight: parseFloat(formData.birthWeight) || 0,
+        dischargebirthWeight: parseFloat(formData.dischargebirthWeight) || 0,
+      };
+
+      await onAddBaby(babyData);
+      onCancel(); // Close the form
     } catch (error) {
-      console.error('Error adding baby:', error);
-      alert('Failed to add baby. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Validation Error',
+        text: error.message,
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
+      <input type="hidden" name="bornId" value={formData.bornId} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
@@ -2220,6 +2244,7 @@ const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
             required
           />
         </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
           <select
@@ -2233,11 +2258,15 @@ const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
             <option value="Female">Female</option>
           </select>
         </div>
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Birth Weight *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Birth Weight (kg) *
+          </label>
           <input
             type="number"
-            step="0.1"
+            step="0.01"
+            min="0"
             name="birthWeight"
             value={formData.birthWeight}
             onChange={handleChange}
@@ -2245,11 +2274,15 @@ const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
             required
           />
         </div>
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Discharge Weight</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Discharge Weight (kg)
+          </label>
           <input
             type="number"
-            step="0.1"
+            step="0.01"
+            min="0"
             name="dischargebirthWeight"
             value={formData.dischargebirthWeight}
             onChange={handleChange}
@@ -2257,6 +2290,7 @@ const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
           />
         </div>
       </div>
+
       <div className="flex justify-end gap-2 pt-2">
         <button
           type="button"
@@ -2279,15 +2313,12 @@ const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
 
 const AddAppointmentForm = ({ bornId, babyId, onAddAppointment, onCancel }) => {
   const [formData, setFormData] = useState({
-    bornId: bornId,
-    babyId: babyId,
     date: new Date().toISOString().split('T')[0],
     time: '09:00',
     purpose: '',
     status: 'Scheduled',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const token = Cookies.get('token');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -2298,20 +2329,27 @@ const AddAppointmentForm = ({ bornId, babyId, onAddAppointment, onCancel }) => {
     e.preventDefault();
     try {
       setIsLoading(true);
-      const response = await axios.post(
-        'https://digitalbackend-uobz.onrender.com/api/v1/appointments',
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await axiosInstance.post(
+        `/appointments`, // Correct endpoint
+        formData
       );
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Appointment added successfully!',
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
       onAddAppointment(response.data);
+      onCancel();
     } catch (error) {
       console.error('Error adding appointment:', error);
-      alert('Failed to add appointment. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed to add appointment',
+        text: error.response?.data?.message || 'Please try again',
+      });
     } finally {
       setIsLoading(false);
     }

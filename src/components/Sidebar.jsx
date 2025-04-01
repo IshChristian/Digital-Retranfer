@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
-import axios from "axios";
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
+import axios from 'axios';
 import {
   Home,
   Users,
@@ -16,13 +16,16 @@ import {
   Heart,
   Hospital,
   X,
-  ChevronLeft
-} from "lucide-react";
+  ChevronLeft,
+} from 'lucide-react';
+
+// Set base URL from environment variable
+const API_BASE_URL = import.meta.env.API_KEY;
 
 function Sidebar({ sidebarOpen, toggleSidebar }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState('');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -30,20 +33,20 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const [userData, setUserData] = useState(null);
   const [formData, setFormData] = useState({
-    firstname: "",
-    lastname: "",
-    phone: "",
-    gender: ""
+    firstname: '',
+    lastname: '',
+    phone: '',
+    gender: '',
   });
   const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   });
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState('profile');
 
   useEffect(() => {
-    const userRole = Cookies.get("role");
+    const userRole = Cookies.get('role');
     if (userRole) {
       setRole(userRole);
     }
@@ -56,23 +59,27 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
         setIsMobileExpanded(false);
       }
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const fetchUserData = async () => {
     try {
-      const token = Cookies.get("token");
-      const userId = Cookies.get("userID");
-      const response = await axios.get(
-        `https://digitalbackend-uobz.onrender.com/api/v1/users/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const token = Cookies.get('token');
+      const userId = Cookies.get('userID');
+
+      if (!token || !userId) {
+        // If no token or userID, redirect to login
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/api/v1/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const { user } = response.data;
       setUserData(user);
@@ -80,32 +87,32 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
         firstname: user.firstname,
         lastname: user.lastname,
         phone: user.phone,
-        gender: user.gender
+        gender: user.gender,
       });
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      console.error('Error fetching user data:', error);
+      // If unauthorized, redirect to login
+      if (error.response?.status === 401) {
+        navigate('/login');
+      }
     }
   };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      const token = Cookies.get("token");
-      const userId = Cookies.get("userID");
-      await axios.put(
-        `https://digitalbackend-uobz.onrender.com/api/v1/users/update/${userId}`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      alert("Profile updated successfully");
+      const token = Cookies.get('token');
+      const userId = Cookies.get('userID');
+      await axios.put(`${API_BASE_URL}/api/v1/users/update/${userId}`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      alert('Profile updated successfully');
       fetchUserData();
     } catch (error) {
-      console.error("Error updating profile:", error);
-      alert("Failed to update profile");
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile');
     }
   };
 
@@ -117,13 +124,13 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
     }
 
     try {
-      const token = Cookies.get("token");
-      const userId = Cookies.get("userID");
+      const token = Cookies.get('token');
+      const userId = Cookies.get('userID');
       await axios.put(
-        `https://digitalbackend-uobz.onrender.com/api/v1/users/update/${userId}`,
+        `${API_BASE_URL}/api/v1/users/update/${userId}`,
         {
           currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
+          newPassword: passwordData.newPassword,
         },
         {
           headers: {
@@ -131,15 +138,15 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
           },
         }
       );
-      alert("Password changed successfully");
+      alert('Password changed successfully');
       setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
       });
     } catch (error) {
-      console.error("Error changing password:", error);
-      alert(error.response?.data?.message || "Failed to change password");
+      console.error('Error changing password:', error);
+      alert(error.response?.data?.message || 'Failed to change password');
     }
   };
 
@@ -148,11 +155,11 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
   };
 
   const confirmLogout = () => {
-    Cookies.remove("email");
-    Cookies.remove("token");
-    Cookies.remove("role");
-    Cookies.remove("userID");
-    window.location.reload();
+    Cookies.remove('email');
+    Cookies.remove('token');
+    Cookies.remove('role');
+    Cookies.remove('userID');
+    navigate('/login');
     setShowLogoutConfirm(false);
   };
 
@@ -173,52 +180,53 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
   };
 
   const adminMenuItems = [
-    { path: "/", icon: Home, label: "Dashboard" },
-    { path: "/users", icon: User, label: "Users" },
-    { path: "/healthcenter", icon: Hospital, label: "Health Center" },
-    { path: "/borns", icon: FileText, label: "Borns" },
-    { path: "/appointments", icon: Calendar, label: "Appointments" },
-    { path: "/notifications", icon: Bell, label: "Notifications" },
+    { path: '/', icon: Home, label: 'Dashboard' },
+    { path: '/users', icon: User, label: 'Users' },
+    { path: '/healthcenter', icon: Hospital, label: 'Health Center' },
+    { path: '/borns', icon: FileText, label: 'Borns' },
+    { path: '/appointments', icon: Calendar, label: 'Appointments' },
+    { path: '/notifications', icon: Bell, label: 'Notifications' },
   ];
 
   const userMenuItems = [
-    { path: "/", icon: Home, label: "Dashboard" },
-    { path: "/borns", icon: FileText, label: "Borns" },
-    { path: "/appointments", icon: Calendar, label: "Appointments" },
-    { path: "/notifications", icon: Bell, label: "Notifications" },
+    { path: '/', icon: Home, label: 'Dashboard' },
+    { path: '/borns', icon: FileText, label: 'Borns' },
+    { path: '/appointments', icon: Calendar, label: 'Appointments' },
+    { path: '/notifications', icon: Bell, label: 'Notifications' },
   ];
 
   const bottomMenuItems = [
-    { 
-      path: "#",
-      icon: Settings, 
-      label: "Settings",
-      onClick: () => setShowSettingsModal(true)
+    {
+      path: '#',
+      icon: Settings,
+      label: 'Settings',
+      onClick: () => setShowSettingsModal(true),
     },
-    { 
-      path: "#",
-      icon: HelpCircle, 
-      label: "Help",
-      onClick: () => setShowHelpModal(true)
+    {
+      path: '#',
+      icon: HelpCircle,
+      label: 'Help',
+      onClick: () => setShowHelpModal(true),
     },
-    { 
-      path: "#",
+    {
+      path: '#',
       icon: LogOut,
-      label: "Logout",
-      onClick: handleLogout
+      label: 'Logout',
+      onClick: handleLogout,
     },
   ];
 
-  const menuItems = role === "admin" ? adminMenuItems : userMenuItems;
+  const menuItems = role === 'admin' ? adminMenuItems : userMenuItems;
 
   return (
     <>
-
-      <aside 
+      <aside
         className={`fixed md:relative z-50 ${
-          effectiveSidebarOpen ? "w-64" : "w-0 md:w-16"
+          effectiveSidebarOpen ? 'w-64' : 'w-0 md:w-16'
         } transition-all duration-300 bg-white text-green-700 h-screen shadow-sm bg-opacity-95 flex flex-col ${
-          isSmallScreen && !isMobileExpanded ? "-translate-x-full md:translate-x-0" : "translate-x-0"
+          isSmallScreen && !isMobileExpanded
+            ? '-translate-x-full md:translate-x-0'
+            : 'translate-x-0'
         }`}
       >
         {/* Sidebar Header */}
@@ -228,19 +236,16 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
               <span className="text-xl font-bold">Digital Retransfer</span>
             </div>
           )}
-          <button 
-            onClick={handleToggleSidebar} 
-            className="text-green-700 hover:text-green-900"
-          >
+          <button onClick={handleToggleSidebar} className="text-green-700 hover:text-green-900">
             {effectiveSidebarOpen ? (
               <ChevronLeft size={20} />
             ) : (
-              <button 
-          onClick={handleMobileToggle}
-          className="fixed z-40 left-4 top-4 bg-white p-2 rounded-md shadow-md text-green-700"
-        >
-          <Menu size={24} />
-        </button>
+              <button
+                onClick={handleMobileToggle}
+                className="fixed z-40 left-4 top-4 bg-white p-2 rounded-md shadow-md text-green-700"
+              >
+                <Menu size={24} />
+              </button>
             )}
           </button>
         </div>
@@ -283,7 +288,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Settings</h3>
-                <button 
+                <button
                   onClick={() => setShowSettingsModal(false)}
                   className="text-gray-400 hover:text-gray-500"
                 >
@@ -294,26 +299,29 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
               <div className="border-b border-gray-200">
                 <nav className="-mb-px flex space-x-8">
                   <button
-                    onClick={() => setActiveTab("profile")}
-                    className={`${activeTab === "profile" ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                    onClick={() => setActiveTab('profile')}
+                    className={`${activeTab === 'profile' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                   >
                     Profile
                   </button>
                   <button
-                    onClick={() => setActiveTab("password")}
-                    className={`${activeTab === "password" ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                    onClick={() => setActiveTab('password')}
+                    className={`${activeTab === 'password' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                   >
                     Change Password
                   </button>
                 </nav>
               </div>
 
-              {activeTab === "profile" && userData && (
+              {activeTab === 'profile' && userData && (
                 <div className="mt-6">
                   <form onSubmit={handleUpdateProfile}>
                     <div className="space-y-4">
                       <div>
-                        <label htmlFor="firstname" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="firstname"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           First name
                         </label>
                         <input
@@ -321,13 +329,16 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           name="firstname"
                           id="firstname"
                           value={formData.firstname}
-                          onChange={(e) => setFormData({...formData, firstname: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="lastname" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="lastname"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Last name
                         </label>
                         <input
@@ -335,13 +346,16 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           name="lastname"
                           id="lastname"
                           value={formData.lastname}
-                          onChange={(e) => setFormData({...formData, lastname: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, lastname: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="phone"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Phone number
                         </label>
                         <input
@@ -349,20 +363,23 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           name="phone"
                           id="phone"
                           value={formData.phone}
-                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="gender"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Gender
                         </label>
                         <select
                           name="gender"
                           id="gender"
                           value={formData.gender}
-                          onChange={(e) => setFormData({...formData, gender: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         >
                           <option value="Male">Male</option>
@@ -391,12 +408,15 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                 </div>
               )}
 
-              {activeTab === "password" && (
+              {activeTab === 'password' && (
                 <div className="mt-6">
                   <form onSubmit={handleChangePassword}>
                     <div className="space-y-4">
                       <div>
-                        <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="currentPassword"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Current Password
                         </label>
                         <input
@@ -404,13 +424,18 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           name="currentPassword"
                           id="currentPassword"
                           value={passwordData.currentPassword}
-                          onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                          onChange={(e) =>
+                            setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="newPassword"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           New Password
                         </label>
                         <input
@@ -418,13 +443,18 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           name="newPassword"
                           id="newPassword"
                           value={passwordData.newPassword}
-                          onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                          onChange={(e) =>
+                            setPasswordData({ ...passwordData, newPassword: e.target.value })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="confirmPassword"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Confirm New Password
                         </label>
                         <input
@@ -432,7 +462,9 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                           name="confirmPassword"
                           id="confirmPassword"
                           value={passwordData.confirmPassword}
-                          onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                          onChange={(e) =>
+                            setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         />
                       </div>
@@ -468,7 +500,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Help & Support</h3>
-                <button 
+                <button
                   onClick={() => setShowHelpModal(false)}
                   className="text-gray-400 hover:text-gray-500"
                 >
@@ -478,7 +510,9 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
 
               <div className="prose prose-sm text-gray-500">
                 <p>
-                  Welcome to the Digital Retransfer system. If you need any assistance or have questions about using the application, please don't hesitate to reach out to our support team.
+                  Welcome to the Digital Retransfer system. If you need any assistance or have
+                  questions about using the application, please don't hesitate to reach out to our
+                  support team.
                 </p>
                 <h4 className="text-sm font-medium text-gray-900 mt-4">Support Contact</h4>
                 <ul className="mt-2 space-y-1">
@@ -533,8 +567,10 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
 
 function MenuGroup({ title, sidebarOpen }) {
   return (
-    <div className={`text-xs font-semibold uppercase text-green-600 ${sidebarOpen ? "px-4" : "px-2"} mt-4 mb-2`}>
-      {sidebarOpen ? title : "•"}
+    <div
+      className={`text-xs font-semibold uppercase text-green-600 ${sidebarOpen ? 'px-4' : 'px-2'} mt-4 mb-2`}
+    >
+      {sidebarOpen ? title : '•'}
     </div>
   );
 }
@@ -544,8 +580,8 @@ function NavItem({ icon: Icon, label, path, active = false, expanded, onClick })
     <Link
       to={path}
       onClick={onClick}
-      className={`flex items-center py-2 ${expanded ? "px-4" : "px-0 justify-center"} ${
-        active ? "bg-green-100 text-green-900 font-semibold" : "text-green-700 hover:bg-green-50"
+      className={`flex items-center py-2 ${expanded ? 'px-4' : 'px-0 justify-center'} ${
+        active ? 'bg-green-100 text-green-900 font-semibold' : 'text-green-700 hover:bg-green-50'
       } transition-colors duration-200 rounded-md my-1`}
     >
       <Icon size={20} />
