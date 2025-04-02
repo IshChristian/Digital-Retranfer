@@ -15,7 +15,7 @@ export default function UserManagementPage() {
   const [isEditMode, setIsEditMode] = useState(false);
 
   const token = Cookies.get('token');
-
+  const API_BASE_URL = import.meta.env.VITE_API_KEY
   
   // Form state
   const [formData, setFormData] = useState({
@@ -43,7 +43,7 @@ export default function UserManagementPage() {
   const fetchUsers = async () => {
     try {
       const token = Cookies.get('token');
-      const response = await axios.get('https://digitalbackend-uobz.onrender.com/api/v1/users', {
+      const response = await axios.get(`${API_BASE_URL}/users`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -59,11 +59,10 @@ export default function UserManagementPage() {
     }
   };
 
-
   const fetchHealthCenters = async () => {
     try {
       const token = Cookies.get('token');
-      const response = await axios.get('https://digitalbackend-uobz.onrender.com/api/v1/healthcenters', {
+      const response = await axios.get(`${API_BASE_URL}/healthcenters`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -77,67 +76,6 @@ export default function UserManagementPage() {
     }
   };
   
-
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    if (value.trim() === '') {
-      setFilteredUsers(users);
-    } else {
-      const filtered = users.filter(user => 
-        `${user.firstname} ${user.lastname}`.toLowerCase().includes(value.toLowerCase()) ||
-        user.email.toLowerCase().includes(value.toLowerCase())
-      );
-      setFilteredUsers(filtered);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleRoleChange = (role) => {
-    setFormData(prev => ({
-      ...prev,
-      role: {
-        ...prev.role,
-        [role]: !prev.role[role]
-      }
-    }));
-  };
-
-  const resetForm = () => {
-    setFormData({
-      firstname: '',
-      lastname: '',
-      email: '',
-      phone: '',
-      role: {
-        data_manager: false,
-        head_of_community_workers_at_helth_center: false,
-        pediatrition: false,
-        admin: false
-      },
-      gender: 'Male',
-      address: '',
-      healthCenterId: ''
-    });
-  };
-
-  const showAlert = (icon, title) => {
-    Swal.fire({
-      icon,
-      title,
-      showConfirmButton: false,
-      timer: 1500
-    });
-  };
-
   const handleAddUser = async () => {
     try {
       if (!formData.firstname || !formData.lastname || !formData.email || !formData.healthCenterId) {
@@ -156,7 +94,7 @@ export default function UserManagementPage() {
       };
   
       const response = await axios.post(
-        'https://digitalbackend-uobz.onrender.com/api/v1/users/addUser',
+        `${API_BASE_URL}/users/addUser`,
         userToAdd,
         {
           headers: {
@@ -179,34 +117,6 @@ export default function UserManagementPage() {
       showAlert('error', error.response?.data?.message || 'Failed to add user');
     }
   };
-  
-
-  const handleViewUser = (user) => {
-    setCurrentUser(user);
-    
-    // Convert role string to object
-    const roles = user.role.split('/');
-    const roleObject = {
-      data_manager: roles.includes('data_manager'),
-      head_of_community_workers_at_helth_center: roles.includes('head_of_community_workers_at_helth_center'),
-      pediatrition: roles.includes('pediatrition'),
-      admin: roles.includes('admin')
-    };
-    
-    setFormData({
-      firstname: user.firstname,
-      lastname: user.lastname,
-      email: user.email,
-      phone: user.phone,
-      role: roleObject,
-      gender: user.gender,
-      address: user.address || '',
-      healthCenterId: user.healthCenterId || ''
-    });
-    
-    setIsViewModalOpen(true);
-    setIsEditMode(false);
-  };
 
   const handleUpdateUser = async () => {
     try {
@@ -228,7 +138,7 @@ export default function UserManagementPage() {
       };
   
       await axios.put(
-        `https://digitalbackend-uobz.onrender.com/api/v1/users/update/${currentUser.id}`,
+        `${API_BASE_URL}/users/update/${currentUser.id}`,
         userToUpdate,
         {
           headers: {
@@ -254,7 +164,6 @@ export default function UserManagementPage() {
       showAlert('error', error.response?.data?.message || 'Failed to update user');
     }
   };
-  
 
   const handleDeleteUser = (userId) => {
     Swal.fire({
@@ -270,7 +179,7 @@ export default function UserManagementPage() {
         try {
           const token = Cookies.get('token'); // Get token from cookies
   
-          await axios.delete(`https://digitalbackend-uobz.onrender.com/api/v1/users/delete/${userId}`, {
+          await axios.delete(`${API_BASE_URL}/users/delete/${userId}`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -295,6 +204,95 @@ export default function UserManagementPage() {
     const center = healthCenters.find(center => center.id === id);
     return center ? center.name : 'Unknown';
   };
+
+  // Add these functions inside your UserManagementPage component, before the return statement
+
+const handleSearch = (e) => {
+  const value = e.target.value;
+  setSearchTerm(value);
+  
+  if (value.trim() === '') {
+    setFilteredUsers(users);
+  } else {
+    const filtered = users.filter(user => 
+      `${user.firstname} ${user.lastname}`.toLowerCase().includes(value.toLowerCase()) ||
+      user.email.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }
+};
+
+const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  setFormData(prev => ({
+    ...prev,
+    [name]: value
+  }));
+};
+
+const handleRoleChange = (role) => {
+  setFormData(prev => ({
+    ...prev,
+    role: {
+      ...prev.role,
+      [role]: !prev.role[role]
+    }
+  }));
+};
+
+const handleViewUser = (user) => {
+  setCurrentUser(user);
+  
+  // Convert role string to object
+  const roles = user.role.split('/');
+  const roleObject = {
+    data_manager: roles.includes('data_manager'),
+    head_of_community_workers_at_helth_center: roles.includes('head_of_community_workers_at_helth_center'),
+    pediatrition: roles.includes('pediatrition'),
+    admin: roles.includes('admin')
+  };
+  
+  setFormData({
+    firstname: user.firstname,
+    lastname: user.lastname,
+    email: user.email,
+    phone: user.phone,
+    role: roleObject,
+    gender: user.gender,
+    address: user.address || '',
+    healthCenterId: user.healthCenterId || ''
+  });
+  
+  setIsViewModalOpen(true);
+  setIsEditMode(false);
+};
+
+const resetForm = () => {
+  setFormData({
+    firstname: '',
+    lastname: '',
+    email: '',
+    phone: '',
+    role: {
+      data_manager: false,
+      head_of_community_workers_at_helth_center: false,
+      pediatrition: false,
+      admin: false
+    },
+    gender: 'Male',
+    address: '',
+    healthCenterId: ''
+  });
+};
+
+const showAlert = (icon, title) => {
+  Swal.fire({
+    icon,
+    title,
+    showConfirmButton: false,
+    timer: 1500
+  });
+};
 
   return (
     <div className="bg-white min-h-screen p-6">

@@ -14,7 +14,7 @@ const NotificationsPage = () => {
   const [currentNotification, setCurrentNotification] = useState(null);
 
   // Setup axios instance with token
-  const API_URL = import.meta.env.API_KEY;
+  const API_URL = import.meta.env.VITE_API_KEY;
   const token = Cookies.get('token');
   const axiosInstance = axios.create({
     baseURL: API_URL,

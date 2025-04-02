@@ -21,19 +21,19 @@ export default function HealthCenterManagement() {
     sectorId: ''
   });
 
+  const token = Cookies.get('token');
+  const API_BASE_URL = import.meta.env.VITE_API_KEY
   // Fetch health centers and sectors on component mount
   useEffect(() => {
     fetchHealthCenters();
     fetchSectors();
   }, []);
 
-  const token = Cookies.get('token');
-
   const fetchHealthCenters = async () => {
     setIsLoading(true);
     try {
         const response = await axios.get(
-            'https://digitalbackend-uobz.onrender.com/api/v1/healthcenters',
+            `${API_BASE_URL}/healthcenters`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -58,7 +58,7 @@ export default function HealthCenterManagement() {
     try {
       const token = Cookies.get('token'); // Get token from cookies
   
-      const response = await axios.get('https://digitalbackend-uobz.onrender.com/api/v1/address/', {
+      const response = await axios.get(`${API_BASE_URL}/address/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -88,160 +88,98 @@ export default function HealthCenterManagement() {
     }
   };
 
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    if (value.trim() === '') {
-      setFilteredCenters(healthCenters);
-    } else {
-      const filtered = healthCenters.filter(center => 
-        center.name.toLowerCase().includes(value.toLowerCase())
+  const handleAddHealthCenter = async () => {
+    try {
+      if (!formData.name || !formData.sectorId) {
+        showAlert('error', 'Please fill all required fields');
+        return;
+      }
+
+      setIsLoading(true);
+      const token = Cookies.get('token');
+
+      const centerToAdd = {
+        name: formData.name,
+        sectorId: parseInt(formData.sectorId),
+      };
+
+      const response = await axios.post(
+        `${API_BASE_URL}/healthcenters`,
+        centerToAdd,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      setFilteredCenters(filtered);
+
+      const newCenter = {
+        id: response.data.id || Date.now(),
+        ...centerToAdd,
+      };
+
+      setHealthCenters((prev) => [...prev, newCenter]);
+      setFilteredCenters((prev) => [...prev, newCenter]);
+
+      setIsAddModalOpen(false);
+      resetForm();
+      showAlert('success', 'Health center added successfully');
+    } catch (error) {
+      console.error('Error adding health center:', error);
+      showAlert('error', error.response?.data?.message || 'Failed to add health center');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const handleUpdateHealthCenter = async () => {
+    try {
+      if (!currentCenter) return;
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      sectorId: ''
-    });
-  };
-
-  const showAlert = (icon, title) => {
-    Swal.fire({
-      icon,
-      title,
-      showConfirmButton: false,
-      timer: 1500
-    });
-  };
-
-
-const handleAddHealthCenter = async () => {
-  try {
-    // Validate form
-    if (!formData.name || !formData.sectorId) {
-      showAlert('error', 'Please fill all required fields');
-      return;
-    }
-
-    setIsLoading(true);
-
-    const token = Cookies.get('token'); // Get token from cookies
-
-    // Prepare data
-    const centerToAdd = {
-      name: formData.name,
-      sectorId: parseInt(formData.sectorId),
-    };
-
-    // API call
-    const response = await axios.post(
-      'https://digitalbackend-uobz.onrender.com/api/v1/healthcenters',
-      centerToAdd,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      if (!formData.name || !formData.sectorId) {
+        showAlert('error', 'Please fill all required fields');
+        return;
       }
-    );
 
-    // Use the response data directly
-    const newCenter = {
-      id: response.data.id || Date.now(), // Use returned ID or fallback
-      ...centerToAdd,
-    };
+      setIsLoading(true);
+      const token = Cookies.get('token');
 
-    setHealthCenters((prev) => [...prev, newCenter]);
-    setFilteredCenters((prev) => [...prev, newCenter]);
+      const centerToUpdate = {
+        name: formData.name,
+        sectorId: parseInt(formData.sectorId),
+      };
 
-    setIsAddModalOpen(false);
-    resetForm();
-    showAlert('success', 'Health center added successfully');
-  } catch (error) {
-    console.error('Error adding health center:', error);
-    showAlert('error', error.response?.data?.message || 'Failed to add health center');
-  } finally {
-    setIsLoading(false);
-  }
-};
+      await axios.put(
+        `${API_BASE_URL}/healthcenters/${currentCenter.id}`,
+        centerToUpdate,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
+      const updatedCenters = healthCenters.map((center) =>
+        center.id === currentCenter.id ? { ...center, ...centerToUpdate } : center
+      );
 
-  const handleViewHealthCenter = (center) => {
-    setCurrentCenter(center);
-    setFormData({
-      name: center.name,
-      sectorId: center.sectorId.toString()
-    });
-    
-    setIsViewModalOpen(true);
-    setIsEditMode(false);
+      setHealthCenters(updatedCenters);
+      setFilteredCenters(updatedCenters);
+
+      setIsViewModalOpen(false);
+      resetForm();
+      setCurrentCenter(null);
+      setIsEditMode(false);
+      showAlert('success', 'Health center updated successfully');
+    } catch (error) {
+      console.error('Error updating health center:', error);
+      showAlert('error', error.response?.data?.message || 'Failed to update health center');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-
-const handleUpdateHealthCenter = async () => {
-  try {
-    if (!currentCenter) return;
-
-    // Validate form
-    if (!formData.name || !formData.sectorId) {
-      showAlert('error', 'Please fill all required fields');
-      return;
-    }
-
-    setIsLoading(true);
-    const token = Cookies.get('token'); // Get token from cookies
-
-    // Prepare data
-    const centerToUpdate = {
-      name: formData.name,
-      sectorId: parseInt(formData.sectorId),
-    };
-
-    // API call
-    await axios.put(
-      `https://digitalbackend-uobz.onrender.com/api/v1/healthcenters/${currentCenter.id}`,
-      centerToUpdate,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    // Update state
-    const updatedCenters = healthCenters.map((center) =>
-      center.id === currentCenter.id ? { ...center, ...centerToUpdate } : center
-    );
-
-    setHealthCenters(updatedCenters);
-    setFilteredCenters(updatedCenters);
-
-    setIsViewModalOpen(false);
-    resetForm();
-    setCurrentCenter(null);
-    setIsEditMode(false);
-    showAlert('success', 'Health center updated successfully');
-  } catch (error) {
-    console.error('Error updating health center:', error);
-    showAlert('error', error.response?.data?.message || 'Failed to update health center');
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-
-const handleDeleteHealthCenter = (centerId) => {
+  const handleDeleteHealthCenter = (centerId) => {
     Swal.fire({
       title: 'Are you sure?',
       text: "You won't be able to revert this!",
@@ -254,23 +192,21 @@ const handleDeleteHealthCenter = (centerId) => {
       if (result.isConfirmed) {
         try {
           setIsLoading(true);
-          const token = Cookies.get('token'); // Get token from cookies
-  
-          // API call
+          const token = Cookies.get('token');
+
           await axios.delete(
-            `https://digitalbackend-uobz.onrender.com/api/v1/healthcenters/${centerId}`,
+            `${API_BASE_URL}/healthcenters/${centerId}`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
             }
           );
-  
-          // Update state
+
           const updatedCenters = healthCenters.filter((center) => center.id !== centerId);
           setHealthCenters(updatedCenters);
           setFilteredCenters(updatedCenters);
-  
+
           showAlert('success', 'Health center deleted successfully');
         } catch (error) {
           console.error('Error deleting health center:', error);
@@ -288,6 +224,95 @@ const handleDeleteHealthCenter = (centerId) => {
     const sector = sectors.find(sector => sector.id === parseInt(id));
     return sector ? sector.name : 'Unknown';
   };
+
+  // Add these functions inside your UserManagementPage component, before the return statement
+
+const handleSearch = (e) => {
+  const value = e.target.value;
+  setSearchTerm(value);
+  
+  if (value.trim() === '') {
+    setFilteredUsers(users);
+  } else {
+    const filtered = users.filter(user => 
+      `${user.firstname} ${user.lastname}`.toLowerCase().includes(value.toLowerCase()) ||
+      user.email.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }
+};
+
+const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  setFormData(prev => ({
+    ...prev,
+    [name]: value
+  }));
+};
+
+const handleRoleChange = (role) => {
+  setFormData(prev => ({
+    ...prev,
+    role: {
+      ...prev.role,
+      [role]: !prev.role[role]
+    }
+  }));
+};
+
+const handleViewUser = (user) => {
+  setCurrentUser(user);
+  
+  // Convert role string to object
+  const roles = user.role.split('/');
+  const roleObject = {
+    data_manager: roles.includes('data_manager'),
+    head_of_community_workers_at_helth_center: roles.includes('head_of_community_workers_at_helth_center'),
+    pediatrition: roles.includes('pediatrition'),
+    admin: roles.includes('admin')
+  };
+  
+  setFormData({
+    firstname: user.firstname,
+    lastname: user.lastname,
+    email: user.email,
+    phone: user.phone,
+    role: roleObject,
+    gender: user.gender,
+    address: user.address || '',
+    healthCenterId: user.healthCenterId || ''
+  });
+  
+  setIsViewModalOpen(true);
+  setIsEditMode(false);
+};
+
+const resetForm = () => {
+  setFormData({
+    firstname: '',
+    lastname: '',
+    email: '',
+    phone: '',
+    role: {
+      data_manager: false,
+      head_of_community_workers_at_helth_center: false,
+      pediatrition: false,
+      admin: false
+    },
+    gender: 'Male',
+    address: '',
+    healthCenterId: ''
+  });
+};
+
+const showAlert = (icon, title) => {
+  Swal.fire({
+    icon,
+    title,
+    showConfirmButton: false,
+    timer: 1500
+  });
+};
 
   return (
     <div className="bg-white min-h-screen p-6">

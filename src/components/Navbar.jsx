@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 // Set base URL from environment variable
-const API_BASE_URL = import.meta.env.API_KEY;
+const API_BASE_URL = import.meta.env.VITE_API_KEY;
 
 function Navbar({ toggleSidebar }) {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -39,7 +39,7 @@ function Navbar({ toggleSidebar }) {
     const fetchNotifications = async () => {
       try {
         const token = Cookies.get('token');
-        const response = await axios.get(`${API_BASE_URL}/api/v1/notification`, {
+        const response = await axios.get(`${API_BASE_URL}/notification`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

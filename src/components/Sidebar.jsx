@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 // Set base URL from environment variable
-const API_BASE_URL = import.meta.env.API_KEY;
+const API_BASE_URL = import.meta.env.VITE_API_KEY;
 
 function Sidebar({ sidebarOpen, toggleSidebar }) {
   const location = useLocation();
@@ -65,45 +65,43 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
   }, []);
 
   const fetchUserData = async () => {
-    try {
-      const token = Cookies.get('token');
-      const userId = Cookies.get('userID');
+  try {
+    const token = Cookies.get('token');
+    const userId = Cookies.get('userID');
 
-      if (!token || !userId) {
-        // If no token or userID, redirect to login
-        navigate('/login');
-        return;
-      }
-
-      const response = await axios.get(`${API_BASE_URL}/api/v1/users/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const { user } = response.data;
-      setUserData(user);
-      setFormData({
-        firstname: user.firstname,
-        lastname: user.lastname,
-        phone: user.phone,
-        gender: user.gender,
-      });
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      // If unauthorized, redirect to login
-      if (error.response?.status === 401) {
-        navigate('/login');
-      }
+    if (!token || !userId) {
+      navigate('/login');
+      return;
     }
-  };
+
+    const response = await axios.get(`${API_BASE_URL}/users/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const user = response.data?.user || {}; // Fallback to empty object if user is undefined
+    setUserData(user);
+    setFormData({
+      firstname: user.firstname || '', // Fallback to empty string if undefined
+      lastname: user.lastname || '',
+      phone: user.phone || '',
+      gender: user.gender || 'Male', // Default to 'Male' if undefined
+    });
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    if (error.response?.status === 401) {
+      navigate('/login');
+    }
+  }
+};
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
       const token = Cookies.get('token');
       const userId = Cookies.get('userID');
-      await axios.put(`${API_BASE_URL}/api/v1/users/update/${userId}`, formData, {
+      await axios.put(`${API_BASE_URL}/users/update/${userId}`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -127,7 +125,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
       const token = Cookies.get('token');
       const userId = Cookies.get('userID');
       await axios.put(
-        `${API_BASE_URL}/api/v1/users/update/${userId}`,
+        `${API_BASE_URL}/users/changePassword/${userId}`,
         {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword,
@@ -495,7 +493,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
 
       {/* Help Modal */}
       {showHelpModal && (
-        <div className="fixed inset-0 bg-green-50i bg-opacity-30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-green-50 bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
