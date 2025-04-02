@@ -18,6 +18,7 @@ import {
   X,
   ChevronLeft,
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 // Set base URL from environment variable
 const API_BASE_URL = import.meta.env.VITE_API_KEY;
@@ -97,56 +98,96 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
 };
 
   const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    try {
-      const token = Cookies.get('token');
-      const userId = Cookies.get('userID');
-      await axios.put(`${API_BASE_URL}/users/update/${userId}`, formData, {
+  e.preventDefault();
+  try {
+    const token = Cookies.get('token');
+    const userId = Cookies.get('userID');
+    
+    await axios.put(`${API_BASE_URL}/users/update/${userId}`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    
+    await Swal.fire({
+      icon: 'success',
+      title: 'Success',
+      text: 'Profile updated successfully',
+      timer: 1500,
+      showConfirmButton: false
+    });
+    
+    fetchUserData();
+    setShowSettingsModal(false);
+    
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || 'Failed to update profile',
+    });
+  }
+};
+
+  const handleChangePassword = async (e) => {
+  e.preventDefault();
+  
+  // Validate passwords match
+  if (passwordData.newPassword !== passwordData.confirmPassword) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: "New passwords don't match",
+    });
+    return;
+  }
+
+  try {
+    const userId = Cookies.get('userID');
+    const token = Cookies.get('token');
+    
+    const response = await axios.put(
+      `${API_BASE_URL}/users/changePassword`,
+      {
+        userId: userId,
+        oldPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
+      },
+      {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      });
-      alert('Profile updated successfully');
-      fetchUserData();
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Failed to update profile');
-    }
-  };
+      }
+    );
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("New passwords don't match");
-      return;
-    }
+    // Success feedback
+    await Swal.fire({
+      icon: 'success',
+      title: 'Success',
+      text: 'Password changed successfully',
+      timer: 1500,
+      showConfirmButton: false
+    });
 
-    try {
-      const token = Cookies.get('token');
-      const userId = Cookies.get('userID');
-      await axios.put(
-        `${API_BASE_URL}/users/changePassword/${userId}`,
-        {
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      alert('Password changed successfully');
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-    } catch (error) {
-      console.error('Error changing password:', error);
-      alert(error.response?.data?.message || 'Failed to change password');
-    }
-  };
+    // Reset form and close modal
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+    setShowSettingsModal(false);
+
+  } catch (error) {
+    console.error('Error changing password:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || 'Failed to change password',
+    });
+  }
+};
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -514,8 +555,8 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
                 </p>
                 <h4 className="text-sm font-medium text-gray-900 mt-4">Support Contact</h4>
                 <ul className="mt-2 space-y-1">
-                  <li>Email: support@digitalretransfer.com</li>
-                  <li>Phone: +250 788 123 456</li>
+                  <li>Email: ishimwechristia94@gmail.com</li>
+                  <li>Phone: +250 795 449 828</li>
                   <li>Working Hours: Mon-Fri, 8:00 AM - 5:00 PM</li>
                 </ul>
               </div>

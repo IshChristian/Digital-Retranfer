@@ -299,6 +299,7 @@ const BornPage = () => {
       fatherNationalId: formData.fatherNationalId,
       fatherName: formData.fatherName,
       fatherPhone: formData.fatherPhone,
+      babyCount: formData.babyCount || currentBorn.babyCount || 1, // Include babyCount
       deliveryType: formData.deliveryType,
       status: formData.status,
       sector_id: formData.sector_id,
@@ -306,6 +307,8 @@ const BornPage = () => {
       village_id: formData.village_id,
       leave: formData.leave // Make sure to include the leave status
     };
+
+    console.log(dataToSend);
 
     // Validate required fields
     if (!dataToSend.motherName || !dataToSend.motherPhone) {
@@ -1255,12 +1258,6 @@ const ViewDetails = ({
           </p>
           <p>
             <span className="font-semibold">Leave Status:</span> {born.leave}
-          </p>
-          <p>
-            <span className="font-semibold hidden">Status:</span>
-          </p>
-          <p>
-            <span className="font-semibold">Baby Count:</span> {born.babyCount}
           </p>
         </div>
       </div>
