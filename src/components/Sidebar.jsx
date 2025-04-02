@@ -66,128 +66,126 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
   }, []);
 
   const fetchUserData = async () => {
-  try {
-    const token = Cookies.get('token');
-    const userId = Cookies.get('userID');
+    try {
+      const token = Cookies.get('token');
+      const userId = Cookies.get('userID');
 
-    if (!token || !userId) {
-      navigate('/login');
-      return;
-    }
+      if (!token || !userId) {
+        navigate('/login');
+        return;
+      }
 
-    const response = await axios.get(`${API_BASE_URL}/users/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const user = response.data?.user || {}; // Fallback to empty object if user is undefined
-    setUserData(user);
-    setFormData({
-      firstname: user.firstname || '', // Fallback to empty string if undefined
-      lastname: user.lastname || '',
-      phone: user.phone || '',
-      gender: user.gender || 'Male', // Default to 'Male' if undefined
-    });
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    if (error.response?.status === 401) {
-      navigate('/login');
-    }
-  }
-};
-
-  const handleUpdateProfile = async (e) => {
-  e.preventDefault();
-  try {
-    const token = Cookies.get('token');
-    const userId = Cookies.get('userID');
-    
-    await axios.put(`${API_BASE_URL}/users/update/${userId}`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
-    await Swal.fire({
-      icon: 'success',
-      title: 'Success',
-      text: 'Profile updated successfully',
-      timer: 1500,
-      showConfirmButton: false
-    });
-    
-    fetchUserData();
-    setShowSettingsModal(false);
-    
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: error.response?.data?.message || 'Failed to update profile',
-    });
-  }
-};
-
-  const handleChangePassword = async (e) => {
-  e.preventDefault();
-  
-  // Validate passwords match
-  if (passwordData.newPassword !== passwordData.confirmPassword) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: "New passwords don't match",
-    });
-    return;
-  }
-
-  try {
-    const userId = Cookies.get('userID');
-    const token = Cookies.get('token');
-    
-    const response = await axios.put(
-      `${API_BASE_URL}/users/changePassword`,
-      {
-        userId: userId,
-        oldPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-        confirmPassword: passwordData.confirmPassword
-      },
-      {
+      const response = await axios.get(`${API_BASE_URL}/users/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+      });
+
+      const user = response.data?.user || {}; // Fallback to empty object if user is undefined
+      setUserData(user);
+      setFormData({
+        firstname: user.firstname || '', // Fallback to empty string if undefined
+        lastname: user.lastname || '',
+        phone: user.phone || '',
+        gender: user.gender || 'Male', // Default to 'Male' if undefined
+      });
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      if (error.response?.status === 401) {
+        navigate('/login');
       }
-    );
+    }
+  };
 
-    // Success feedback
-    await Swal.fire({
-      icon: 'success',
-      title: 'Success',
-      text: 'Password changed successfully',
-      timer: 1500,
-      showConfirmButton: false
-    });
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    try {
+      const token = Cookies.get('token');
+      const userId = Cookies.get('userID');
 
-    // Reset form and close modal
-    setPasswordData({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
-    setShowSettingsModal(false);
+      await axios.put(`${API_BASE_URL}/users/update/${userId}`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-  } catch (error) {
-    console.error('Error changing password:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: error.response?.data?.message || 'Failed to change password',
-    });
-  }
-};
+      await Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: 'Profile updated successfully',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      fetchUserData();
+      setShowSettingsModal(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Failed to update profile',
+      });
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+
+    // Validate passwords match
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: "New passwords don't match",
+      });
+      return;
+    }
+
+    try {
+      const userId = Cookies.get('userID');
+      const token = Cookies.get('token');
+
+      const response = await axios.put(
+        `${API_BASE_URL}/users/changePassword`,
+        {
+          userId: userId,
+          oldPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+          confirmPassword: passwordData.confirmPassword,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Success feedback
+      await Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: 'Password changed successfully',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      // Reset form and close modal
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setShowSettingsModal(false);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Failed to change password',
+      });
+    }
+  };
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -225,6 +223,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
     { path: '/borns', icon: FileText, label: 'Borns' },
     { path: '/appointments', icon: Calendar, label: 'Appointments' },
     { path: '/notifications', icon: Bell, label: 'Notifications' },
+    { path: '/report', icon: FileText, label: 'Reports' },
   ];
 
   const userMenuItems = [
@@ -232,6 +231,7 @@ function Sidebar({ sidebarOpen, toggleSidebar }) {
     { path: '/borns', icon: FileText, label: 'Borns' },
     { path: '/appointments', icon: Calendar, label: 'Appointments' },
     { path: '/notifications', icon: Bell, label: 'Notifications' },
+    { path: '/report', icon: FileText, label: 'Reports' },
   ];
 
   const bottomMenuItems = [

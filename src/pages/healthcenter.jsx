@@ -14,15 +14,15 @@ export default function HealthCenterManagement() {
   const [currentCenter, setCurrentCenter] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
-    sectorId: ''
+    sectorId: '',
   });
 
   const token = Cookies.get('token');
-  const API_BASE_URL = import.meta.env.VITE_API_KEY
+  const API_BASE_URL = import.meta.env.VITE_API_KEY;
   // Fetch health centers and sectors on component mount
   useEffect(() => {
     fetchHealthCenters();
@@ -32,40 +32,36 @@ export default function HealthCenterManagement() {
   const fetchHealthCenters = async () => {
     setIsLoading(true);
     try {
-        const response = await axios.get(
-            `${API_BASE_URL}/healthcenters`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-  
+      const response = await axios.get(`${API_BASE_URL}/healthcenters`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       const centers = response.data || [];
-  
+
       setHealthCenters(centers);
       setFilteredCenters(centers);
     } catch (error) {
-      console.error("Error fetching health centers:", error);
+      console.error('Error fetching health centers:', error);
       showAlert('error', 'Failed to load health centers');
     } finally {
       setIsLoading(false);
     }
   };
-  
 
   const fetchSectors = async () => {
     try {
       const token = Cookies.get('token'); // Get token from cookies
-  
+
       const response = await axios.get(`${API_BASE_URL}/address/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-  
+
       const data = response.data;
-  
+
       // Extract sectors from the nested structure
       const sectorsData = [];
       if (data?.data?.length) {
@@ -80,7 +76,7 @@ export default function HealthCenterManagement() {
           });
         });
       }
-  
+
       setSectors(sectorsData);
     } catch (error) {
       console.error('Error fetching sectors:', error);
@@ -103,15 +99,11 @@ export default function HealthCenterManagement() {
         sectorId: parseInt(formData.sectorId),
       };
 
-      const response = await axios.post(
-        `${API_BASE_URL}/healthcenters`,
-        centerToAdd,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.post(`${API_BASE_URL}/healthcenters`, centerToAdd, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const newCenter = {
         id: response.data.id || Date.now(),
@@ -149,15 +141,11 @@ export default function HealthCenterManagement() {
         sectorId: parseInt(formData.sectorId),
       };
 
-      await axios.put(
-        `${API_BASE_URL}/healthcenters/${currentCenter.id}`,
-        centerToUpdate,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await axios.put(`${API_BASE_URL}/healthcenters/${currentCenter.id}`, centerToUpdate, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const updatedCenters = healthCenters.map((center) =>
         center.id === currentCenter.id ? { ...center, ...centerToUpdate } : center
@@ -194,14 +182,11 @@ export default function HealthCenterManagement() {
           setIsLoading(true);
           const token = Cookies.get('token');
 
-          await axios.delete(
-            `${API_BASE_URL}/healthcenters/${centerId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          await axios.delete(`${API_BASE_URL}/healthcenters/${centerId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           const updatedCenters = healthCenters.filter((center) => center.id !== centerId);
           setHealthCenters(updatedCenters);
@@ -217,102 +202,103 @@ export default function HealthCenterManagement() {
       }
     });
   };
-  
-  
 
   const getSectorName = (id) => {
-    const sector = sectors.find(sector => sector.id === parseInt(id));
+    const sector = sectors.find((sector) => sector.id === parseInt(id));
     return sector ? sector.name : 'Unknown';
   };
 
   // Add these functions inside your UserManagementPage component, before the return statement
 
-const handleSearch = (e) => {
-  const value = e.target.value;
-  setSearchTerm(value);
-  
-  if (value.trim() === '') {
-    setFilteredUsers(users);
-  } else {
-    const filtered = users.filter(user => 
-      `${user.firstname} ${user.lastname}`.toLowerCase().includes(value.toLowerCase()) ||
-      user.email.toLowerCase().includes(value.toLowerCase())
-    );
-    setFilteredUsers(filtered);
-  }
-};
+  const handleSearch = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
 
-const handleInputChange = (e) => {
-  const { name, value } = e.target;
-  setFormData(prev => ({
-    ...prev,
-    [name]: value
-  }));
-};
-
-const handleRoleChange = (role) => {
-  setFormData(prev => ({
-    ...prev,
-    role: {
-      ...prev.role,
-      [role]: !prev.role[role]
+    if (value.trim() === '') {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter(
+        (user) =>
+          `${user.firstname} ${user.lastname}`.toLowerCase().includes(value.toLowerCase()) ||
+          user.email.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredUsers(filtered);
     }
-  }));
-};
-
-const handleViewUser = (user) => {
-  setCurrentUser(user);
-  
-  // Convert role string to object
-  const roles = user.role.split('/');
-  const roleObject = {
-    data_manager: roles.includes('data_manager'),
-    head_of_community_workers_at_helth_center: roles.includes('head_of_community_workers_at_helth_center'),
-    pediatrition: roles.includes('pediatrition'),
-    admin: roles.includes('admin')
   };
-  
-  setFormData({
-    firstname: user.firstname,
-    lastname: user.lastname,
-    email: user.email,
-    phone: user.phone,
-    role: roleObject,
-    gender: user.gender,
-    address: user.address || '',
-    healthCenterId: user.healthCenterId || ''
-  });
-  
-  setIsViewModalOpen(true);
-  setIsEditMode(false);
-};
 
-const resetForm = () => {
-  setFormData({
-    firstname: '',
-    lastname: '',
-    email: '',
-    phone: '',
-    role: {
-      data_manager: false,
-      head_of_community_workers_at_helth_center: false,
-      pediatrition: false,
-      admin: false
-    },
-    gender: 'Male',
-    address: '',
-    healthCenterId: ''
-  });
-};
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-const showAlert = (icon, title) => {
-  Swal.fire({
-    icon,
-    title,
-    showConfirmButton: false,
-    timer: 1500
-  });
-};
+  const handleRoleChange = (role) => {
+    setFormData((prev) => ({
+      ...prev,
+      role: {
+        ...prev.role,
+        [role]: !prev.role[role],
+      },
+    }));
+  };
+
+  const handleViewUser = (user) => {
+    setCurrentUser(user);
+
+    // Convert role string to object
+    const roles = user.role.split('/');
+    const roleObject = {
+      data_manager: roles.includes('data_manager'),
+      head_of_community_workers_at_helth_center: roles.includes(
+        'head_of_community_workers_at_helth_center'
+      ),
+      pediatrition: roles.includes('pediatrition'),
+      admin: roles.includes('admin'),
+    };
+
+    setFormData({
+      firstname: user.firstname,
+      lastname: user.lastname,
+      email: user.email,
+      phone: user.phone,
+      role: roleObject,
+      gender: user.gender,
+      address: user.address || '',
+      healthCenterId: user.healthCenterId || '',
+    });
+
+    setIsViewModalOpen(true);
+    setIsEditMode(false);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      firstname: '',
+      lastname: '',
+      email: '',
+      phone: '',
+      role: {
+        data_manager: false,
+        head_of_community_workers_at_helth_center: false,
+        pediatrition: false,
+        admin: false,
+      },
+      gender: 'Male',
+      address: '',
+      healthCenterId: '',
+    });
+  };
+
+  const showAlert = (icon, title) => {
+    Swal.fire({
+      icon,
+      title,
+      showConfirmButton: false,
+      timer: 1500,
+    });
+  };
 
   return (
     <div className="bg-white min-h-screen p-6">
@@ -321,7 +307,7 @@ const showAlert = (icon, title) => {
         <h1 className="text-3xl font-bold text-green-600">Health Center Management</h1>
         <p className="text-gray-600">Manage health centers in the system</p>
       </div>
-      
+
       {/* Filters and Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div className="relative w-full md:w-64">
@@ -334,7 +320,7 @@ const showAlert = (icon, title) => {
           />
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
         </div>
-        
+
         <button
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           onClick={() => {
@@ -347,22 +333,27 @@ const showAlert = (icon, title) => {
           Add New Health Center
         </button>
       </div>
-      
+
       {/* Health Centers Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {isLoading && (
-          <div className="p-4 text-center text-gray-500">
-            Loading...
-          </div>
-        )}
-        
+        {isLoading && <div className="p-4 text-center text-gray-500">Loading...</div>}
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-green-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Health Center</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Sector</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Health Center
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Sector
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Head
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -382,15 +373,12 @@ const showAlert = (icon, title) => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {getSectorName(center.sectorId)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {center.head.firstname}
+                      {center.head.lastname}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button 
-                        className="text-green-600 hover:text-green-900"
-                        onClick={() => handleViewHealthCenter(center)}
-                        disabled={isLoading}
-                      >
-                        <Eye size={18} />
-                      </button>
-                      <button 
+                      <button
                         className="text-red-600 hover:text-red-900 ml-3"
                         onClick={() => handleDeleteHealthCenter(center.id)}
                         disabled={isLoading}
@@ -411,14 +399,14 @@ const showAlert = (icon, title) => {
           </table>
         </div>
       </div>
-      
+
       {/* Add Health Center Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-md max-h-screen overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
               <h2 className="text-xl font-semibold text-green-700">Add New Health Center</h2>
-              <button 
+              <button
                 className="text-gray-400 hover:text-gray-600"
                 onClick={() => setIsAddModalOpen(false)}
                 disabled={isLoading}
@@ -426,10 +414,12 @@ const showAlert = (icon, title) => {
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Health Center Name*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Health Center Name*
+                </label>
                 <input
                   type="text"
                   name="name"
@@ -440,7 +430,7 @@ const showAlert = (icon, title) => {
                   disabled={isLoading}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sector*</label>
                 <select
@@ -452,7 +442,7 @@ const showAlert = (icon, title) => {
                   disabled={isLoading}
                 >
                   <option value="">Select Sector</option>
-                  {sectors.map(sector => (
+                  {sectors.map((sector) => (
                     <option key={sector.id} value={sector.id}>
                       {sector.name}
                     </option>
@@ -460,7 +450,7 @@ const showAlert = (icon, title) => {
                 </select>
               </div>
             </div>
-            
+
             <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-2">
               <button
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
@@ -480,7 +470,7 @@ const showAlert = (icon, title) => {
           </div>
         </div>
       )}
-      
+
       {/* View/Edit Health Center Modal */}
       {isViewModalOpen && currentCenter && (
         <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
@@ -491,7 +481,7 @@ const showAlert = (icon, title) => {
               </h2>
               <div className="flex items-center gap-2">
                 {!isEditMode && (
-                  <button 
+                  <button
                     className="text-green-600 hover:text-green-900"
                     onClick={() => setIsEditMode(true)}
                     disabled={isLoading}
@@ -499,7 +489,7 @@ const showAlert = (icon, title) => {
                     <Edit size={20} />
                   </button>
                 )}
-                <button 
+                <button
                   className="text-gray-400 hover:text-gray-600"
                   onClick={() => {
                     setIsViewModalOpen(false);
@@ -512,10 +502,12 @@ const showAlert = (icon, title) => {
                 </button>
               </div>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Health Center Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Health Center Name
+                </label>
                 {isEditMode ? (
                   <input
                     type="text"
@@ -530,7 +522,7 @@ const showAlert = (icon, title) => {
                   <p className="text-gray-800">{currentCenter.name}</p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sector</label>
                 {isEditMode ? (
@@ -543,7 +535,7 @@ const showAlert = (icon, title) => {
                     disabled={isLoading}
                   >
                     <option value="">Select Sector</option>
-                    {sectors.map(sector => (
+                    {sectors.map((sector) => (
                       <option key={sector.id} value={sector.id}>
                         {sector.name}
                       </option>
@@ -554,7 +546,7 @@ const showAlert = (icon, title) => {
                 )}
               </div>
             </div>
-            
+
             <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-2">
               <button
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"

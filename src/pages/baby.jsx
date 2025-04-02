@@ -76,7 +76,7 @@ const BornPage = () => {
   const token = Cookies.get('token');
   const API_BASE_URL = import.meta.env.VITE_API_KEY;
   const isPediatrition = userRole === 'pediatrition';
-  
+
   const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -284,71 +284,71 @@ const BornPage = () => {
   };
 
   const updateBorn = async () => {
-  if (!currentBorn?.id) return;
+    if (!currentBorn?.id) return;
 
-  try {
-    setIsLoading(true);
-    
-    // Prepare the data to send
-    const dataToSend = {
-      dateOfBirth: formData.dateOfBirth,
-      healthCenterId: formData.healthCenterId,
-      motherName: formData.motherName,
-      motherPhone: formData.motherPhone,
-      motherNationalId: formData.motherNationalId,
-      fatherNationalId: formData.fatherNationalId,
-      fatherName: formData.fatherName,
-      fatherPhone: formData.fatherPhone,
-      babyCount: formData.babyCount || currentBorn.babyCount || 1, // Include babyCount
-      deliveryType: formData.deliveryType,
-      status: formData.status,
-      sector_id: formData.sector_id,
-      cell_id: formData.cell_id,
-      village_id: formData.village_id,
-      leave: formData.leave // Make sure to include the leave status
-    };
+    try {
+      setIsLoading(true);
 
-    console.log(dataToSend);
+      // Prepare the data to send
+      const dataToSend = {
+        dateOfBirth: formData.dateOfBirth,
+        healthCenterId: formData.healthCenterId,
+        motherName: formData.motherName,
+        motherPhone: formData.motherPhone,
+        motherNationalId: formData.motherNationalId,
+        fatherNationalId: formData.fatherNationalId,
+        fatherName: formData.fatherName,
+        fatherPhone: formData.fatherPhone,
+        babyCount: formData.babyCount || currentBorn.babyCount || 1, // Include babyCount
+        deliveryType: formData.deliveryType,
+        status: formData.status,
+        sector_id: formData.sector_id,
+        cell_id: formData.cell_id,
+        village_id: formData.village_id,
+        leave: formData.leave, // Make sure to include the leave status
+      };
 
-    // Validate required fields
-    if (!dataToSend.motherName || !dataToSend.motherPhone) {
-      throw new Error('Mother name and phone are required');
-    }
+      console.log(dataToSend);
 
-    // Convert string IDs to numbers if needed
-    if (dataToSend.healthCenterId) {
-      dataToSend.healthCenterId = parseInt(dataToSend.healthCenterId);
-    }
-    if (dataToSend.sector_id) {
-      dataToSend.sector_id = parseInt(dataToSend.sector_id);
-    }
-    if (dataToSend.cell_id) {
-      dataToSend.cell_id = parseInt(dataToSend.cell_id);
-    }
-    if (dataToSend.village_id) {
-      dataToSend.village_id = parseInt(dataToSend.village_id);
-    }
+      // Validate required fields
+      if (!dataToSend.motherName || !dataToSend.motherPhone) {
+        throw new Error('Mother name and phone are required');
+      }
 
-    const response = await axiosInstance.put(`/borns/${currentBorn.id}`, dataToSend);
+      // Convert string IDs to numbers if needed
+      if (dataToSend.healthCenterId) {
+        dataToSend.healthCenterId = parseInt(dataToSend.healthCenterId);
+      }
+      if (dataToSend.sector_id) {
+        dataToSend.sector_id = parseInt(dataToSend.sector_id);
+      }
+      if (dataToSend.cell_id) {
+        dataToSend.cell_id = parseInt(dataToSend.cell_id);
+      }
+      if (dataToSend.village_id) {
+        dataToSend.village_id = parseInt(dataToSend.village_id);
+      }
 
-    if (response.status === 200) {
-      await fetchBorns();
-      setIsEditMode(false);
-      setIsViewModalOpen(false);
-      showAlert('success', 'Born record updated successfully');
+      const response = await axiosInstance.put(`/borns/${currentBorn.id}`, dataToSend);
+
+      if (response.status === 200) {
+        await fetchBorns();
+        setIsEditMode(false);
+        setIsViewModalOpen(false);
+        showAlert('success', 'Born record updated successfully');
+      }
+    } catch (err) {
+      console.error('Error updating born record:', err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Failed to update born record (server error)';
+      showAlert('error', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.error('Error updating born record:', err);
-    const errorMessage =
-      err.response?.data?.message || 
-      err.response?.data?.error || 
-      err.message || 
-      'Failed to update born record (server error)';
-    showAlert('error', errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const deleteBorn = async () => {
     if (!currentBorn?.id) return;
@@ -435,11 +435,11 @@ const BornPage = () => {
       await axiosInstance.delete(`/babies/${babyId}`);
 
       await Swal.fire('Deleted!', 'The baby record has been deleted.', 'success');
-      
-      setCurrentBorn(prev => ({
+
+      setCurrentBorn((prev) => ({
         ...prev,
-        babies: prev.babies.filter(baby => baby.id !== babyId),
-        babyCount: prev.babyCount - 1
+        babies: prev.babies.filter((baby) => baby.id !== babyId),
+        babyCount: prev.babyCount - 1,
       }));
 
       await fetchBorns();
@@ -450,26 +450,24 @@ const BornPage = () => {
     }
   };
 
- const handleUpdateBaby = async (updatedBaby) => {
-  try {
-    setIsLoading(true);
-    const response = await axiosInstance.put(`/babies/${updatedBaby.id}`, updatedBaby);
-    
-    if (response.status === 200) {
-      // Update local state
-      setCurrentBorn(prev => ({
-        ...prev,
-        babies: prev.babies.map(b => 
-          b.id === updatedBaby.id ? response.data : b
-        )
-      }));
-      
-      await Swal.fire('Success', 'Baby updated successfully', 'success');
-       // Close the modal after successful update
-      setIsViewModalOpen(false);
-      return true;
-    }
-  } catch (error) {
+  const handleUpdateBaby = async (updatedBaby) => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.put(`/babies/${updatedBaby.id}`, updatedBaby);
+
+      if (response.status === 200) {
+        // Update local state
+        setCurrentBorn((prev) => ({
+          ...prev,
+          babies: prev.babies.map((b) => (b.id === updatedBaby.id ? response.data : b)),
+        }));
+
+        await Swal.fire('Success', 'Baby updated successfully', 'success');
+        // Close the modal after successful update
+        setIsViewModalOpen(false);
+        return true;
+      }
+    } catch (error) {
       console.error('Error updating baby:', error);
       Swal.fire({
         icon: 'error',
@@ -491,17 +489,17 @@ const BornPage = () => {
         gender: newBaby.gender,
         birthWeight: parseFloat(newBaby.birthWeight),
         dischargebirthWeight: parseFloat(newBaby.dischargebirthWeight),
-        medications: newBaby.medications || []
+        medications: newBaby.medications || [],
       };
 
       const response = await axiosInstance.post('/babies', babyData);
 
-      setCurrentBorn(prev => ({
+      setCurrentBorn((prev) => ({
         ...prev,
         babies: [...prev.babies, response.data],
-        babyCount: prev.babyCount + 1
+        babyCount: prev.babyCount + 1,
       }));
-      
+
       setTimeout(() => {
         Swal.fire({
           icon: 'success',
@@ -526,35 +524,35 @@ const BornPage = () => {
   };
 
   const handleAddAppointment = async (appointmentData) => {
-  try {
-    setIsLoading(true);
-    const response = await axiosInstance.post('/appointments', appointmentData);
-    
-    // Show success alert
-    await Swal.fire({
-      icon: 'success',
-      title: 'Appointment added!',
-      showConfirmButton: false,
-      timer: 1500
-    });
-    
-    // Close the ViewDetails modal after alert
-    setIsViewModalOpen(false);
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.post('/appointments', appointmentData);
 
-    // Update state if needed
-    setCurrentBorn(prev => ({
-      ...prev,
-      appointments: [...(prev.appointments || []), response.data]
-    }));
-    // Refresh the data
-    await fetchBorns();
-  } catch (error) {
-    console.error('Error adding appointment:', error);
-    Swal.fire('Error', 'Failed to add appointment', 'error');
-  } finally {
-    setIsLoading(false);
-  }
-};
+      // Show success alert
+      await Swal.fire({
+        icon: 'success',
+        title: 'Appointment added!',
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      // Close the ViewDetails modal after alert
+      setIsViewModalOpen(false);
+
+      // Update state if needed
+      setCurrentBorn((prev) => ({
+        ...prev,
+        appointments: [...(prev.appointments || []), response.data],
+      }));
+      // Refresh the data
+      await fetchBorns();
+    } catch (error) {
+      console.error('Error adding appointment:', error);
+      Swal.fire('Error', 'Failed to add appointment', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Form management
   const resetForm = () => {
@@ -1067,7 +1065,7 @@ const BornPage = () => {
               ) : (
                 <ViewDetails
                   born={currentBorn}
-                  setCurrentBorn={setCurrentBorn} 
+                  setCurrentBorn={setCurrentBorn}
                   sectors={sectors}
                   cells={cells}
                   villages={villages}
@@ -1097,78 +1095,81 @@ const BornPage = () => {
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                 onClick={() => {
                   setIsViewModalOpen(false);
-setIsEditMode(false);
-setCurrentBorn(null);
-}}
-disabled={isLoading}
->
-{isEditMode ? 'Cancel' : 'Close'}
-</button>
-{isEditMode && isPediatrition && (
-<button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300" onClick={updateBorn} disabled={isLoading} >
-{isLoading ? 'Updating...' : 'Update Record'}
-</button>
-)}
-</div>
-</div>
-</div>
-)}
-
-
-  {/* Delete Confirmation Modal */}
-  {isDeleteModalOpen && (
-    <div className="fixed inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <div className="flex items-center text-red-600 mb-4">
-          <AlertTriangle className="h-8 w-8 mr-2" />
-          <h2 className="text-xl font-bold">Confirm Delete</h2>
+                  setIsEditMode(false);
+                  setCurrentBorn(null);
+                }}
+                disabled={isLoading}
+              >
+                {isEditMode ? 'Cancel' : 'Close'}
+              </button>
+              {isEditMode && isPediatrition && (
+                <button
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300"
+                  onClick={updateBorn}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Updating...' : 'Update Record'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
+      )}
 
-        <p className="mb-6">
-          Are you sure you want to delete the record for{' '}
-          <span className="font-semibold">{currentBorn?.motherName}</span>? This action cannot
-          be undone.
-        </p>
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center text-red-600 mb-4">
+              <AlertTriangle className="h-8 w-8 mr-2" />
+              <h2 className="text-xl font-bold">Confirm Delete</h2>
+            </div>
 
-        <div className="flex justify-end space-x-4">
-          <button
-            onClick={() => setIsDeleteModalOpen(false)}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={deleteBorn}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-300 flex items-center"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              'Deleting...'
-            ) : (
-              <>
-                <Trash2 className="h-5 w-5 mr-1" />
-                Delete
-              </>
-            )}
-          </button>
+            <p className="mb-6">
+              Are you sure you want to delete the record for{' '}
+              <span className="font-semibold">{currentBorn?.motherName}</span>? This action cannot
+              be undone.
+            </p>
+
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteBorn}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-300 flex items-center"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  'Deleting...'
+                ) : (
+                  <>
+                    <Trash2 className="h-5 w-5 mr-1" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Add Baby Modal */}
+      {isAddBabyModalOpen && (
+        <AddBabyModal
+          isOpen={isAddBabyModalOpen}
+          onClose={() => setIsAddBabyModalOpen(false)}
+          bornId={currentBorn?.id}
+          onAddBaby={handleAddBaby}
+          axiosInstance={axiosInstance}
+        />
+      )}
     </div>
-  )}
-
-  {/* Add Baby Modal */}
-  {isAddBabyModalOpen && (
-    <AddBabyModal
-      isOpen={isAddBabyModalOpen}
-      onClose={() => setIsAddBabyModalOpen(false)}
-      bornId={currentBorn?.id}
-      onAddBaby={handleAddBaby}
-      axiosInstance={axiosInstance}
-    />
-  )}
-</div>
-);
+  );
 };
 
 // ViewDetails Component
@@ -1307,32 +1308,32 @@ const ViewDetails = ({
 
       {/* Add Appointment Section */}
       {isPediatrition && (
-  <div className="mt-4">
-    {!isAddingAppointment ? (
-      <button
-        onClick={() => setIsAddingAppointment(true)}
-        className="flex items-center gap-2 text-green-600 hover:text-green-800"
-      >
-        <Plus size={18} />
-        Add New Appointment
-      </button>
-    ) : (
-      <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
-        <h4 className="font-semibold text-blue-800 mb-3">Add New Appointment</h4>
-        <AddAppointmentForm
-          bornId={born.id}
-          babyId={born.babies?.[0]?.id}
-          onAddAppointment={async (newAppointment) => {
-            await onAddAppointment(newAppointment);
-            setIsAddingAppointment(false);
-          }}
-          onCancel={() => setIsAddingAppointment(false)}
-          axiosInstance={axiosInstance}
-        />
-      </div>
-    )}
-  </div>
-)}
+        <div className="mt-4">
+          {!isAddingAppointment ? (
+            <button
+              onClick={() => setIsAddingAppointment(true)}
+              className="flex items-center gap-2 text-green-600 hover:text-green-800"
+            >
+              <Plus size={18} />
+              Add New Appointment
+            </button>
+          ) : (
+            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+              <h4 className="font-semibold text-blue-800 mb-3">Add New Appointment</h4>
+              <AddAppointmentForm
+                bornId={born.id}
+                babyId={born.babies?.[0]?.id}
+                onAddAppointment={async (newAppointment) => {
+                  await onAddAppointment(newAppointment);
+                  setIsAddingAppointment(false);
+                }}
+                onCancel={() => setIsAddingAppointment(false)}
+                axiosInstance={axiosInstance}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Babies Section */}
       <div>
@@ -1454,12 +1455,6 @@ const ViewDetails = ({
                                 <p>
                                   <span className="font-semibold">Notes:</span> {feedback.feedback}
                                 </p>
-                                {feedback.nextAppointmentDate && (
-                                  <p>
-                                    <span className="font-semibold">Next Appointment:</span>{' '}
-                                    {new Date(feedback.nextAppointmentDate).toLocaleDateString()}
-                                  </p>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -1475,848 +1470,886 @@ const ViewDetails = ({
           ))}
         </div>
       </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-lg font-medium text-green-700 mb-3">Recorded By</h3>
+          <div className="bg-green-50 p-4 rounded">
+            <p className="mb-2">
+              <span className="font-semibold">Name:</span> {born.recordedBy.firstname}{' '}
+              {born.recordedBy.lastname}
+            </p>
+            <p className="mb-2">
+              <span className="font-semibold">Email:</span> {born.recordedBy.email}
+            </p>
+            <p className="mb-2">
+              <span className="font-semibold">Phone:</span> {born.recordedBy.phone}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
 // EditBabyForm Component
 const EditBabyForm = ({ baby, onUpdate, onCancel, isLoading }) => {
-const [formData, setFormData] = useState({
-name: baby?.name || '',
-gender: baby?.gender || 'Male',
-birthWeight: baby?.birthWeight || 0,
-dischargebirthWeight: baby?.dischargebirthWeight || 0,
-medications: Array.isArray(baby?.medications) ? baby.medications : [],
-id: baby?.id,
-bornId: baby?.bornId,
-});
+  const [formData, setFormData] = useState({
+    name: baby?.name || '',
+    gender: baby?.gender || 'Male',
+    birthWeight: baby?.birthWeight || 0,
+    dischargebirthWeight: baby?.dischargebirthWeight || 0,
+    medications: Array.isArray(baby?.medications) ? baby.medications : [],
+    id: baby?.id,
+    bornId: baby?.bornId,
+  });
 
-const handleChange = (e) => {
-const { name, value } = e.target;
-setFormData((prev) => ({ ...prev, [name]: value }));
-};
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-const handleMedicationChange = (index, e) => {
-const { name, value } = e.target;
-setFormData((prev) => {
-const updatedMedications = [...(prev.medications || [])];
-updatedMedications[index] = { ...updatedMedications[index], [name]: value };
-return { ...prev, medications: updatedMedications };
-});
-};
+  const handleMedicationChange = (index, e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const updatedMedications = [...(prev.medications || [])];
+      updatedMedications[index] = { ...updatedMedications[index], [name]: value };
+      return { ...prev, medications: updatedMedications };
+    });
+  };
 
-const addMedication = () => {
-setFormData((prev) => ({
-...prev,
-medications: [...(prev.medications || []), { name: '', dose: '', frequency: '' }],
-}));
-};
+  const addMedication = () => {
+    setFormData((prev) => ({
+      ...prev,
+      medications: [...(prev.medications || []), { name: '', dose: '', frequency: '' }],
+    }));
+  };
 
-const removeMedication = (index) => {
-setFormData((prev) => ({
-...prev,
-medications: (prev.medications || []).filter((_, i) => i !== index),
-}));
-};
+  const removeMedication = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      medications: (prev.medications || []).filter((_, i) => i !== index),
+    }));
+  };
 
-const handleSubmit = async (e) => {
-e.preventDefault();
-const success = await onUpdate(formData);
-if (success) {
-onCancel();
-}
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const success = await onUpdate(formData);
+    if (success) {
+      onCancel();
+    }
+  };
 
- const handleCancelClick = () => {
+  const handleCancelClick = () => {
     onCancel();
   };
 
-return (
-<form onSubmit={handleSubmit} className="space-y-4">
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-<div>
-<label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-<input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
-</div>
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            required
+          />
+        </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+          <select
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            required
+          >
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-      <select
-        name="gender"
-        value={formData.gender}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        required
-      >
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-      </select>
-    </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Birth Weight (kg) *
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            name="birthWeight"
+            value={formData.birthWeight}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            required
+          />
+        </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Birth Weight (kg) *
-      </label>
-      <input
-        type="number"
-        step="0.1"
-        name="birthWeight"
-        value={formData.birthWeight}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        required
-      />
-    </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Discharge Weight (kg)
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            name="dischargebirthWeight"
+            value={formData.dischargebirthWeight}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+      </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Discharge Weight (kg)
-      </label>
-      <input
-        type="number"
-        step="0.1"
-        name="dischargebirthWeight"
-        value={formData.dischargebirthWeight}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-      />
-    </div>
-  </div>
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h5 className="font-semibold text-green-800">Medications</h5>
+          <button
+            type="button"
+            onClick={addMedication}
+            className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Add Medication
+          </button>
+        </div>
 
-  <div>
-    <div className="flex items-center justify-between mb-2">
-      <h5 className="font-semibold text-green-800">Medications</h5>
-      <button
-        type="button"
-        onClick={addMedication}
-        className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center"
-      >
-        <Plus className="h-3 w-3 mr-1" />
-        Add Medication
-      </button>
-    </div>
+        {formData.medications?.length > 0 ? (
+          <table className="w-full">
+            <thead className="bg-green-100">
+              <tr>
+                <th className="text-left py-2 px-3">Medication</th>
+                <th className="text-left py-2 px-3">Dose</th>
+                <th className="text-left py-2 px-3">Frequency</th>
+                <th className="text-left py-2 px-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formData.medications.map((med, index) => (
+                <tr key={`med-${index}`}>
+                  <td className="py-2 px-3">
+                    <input
+                      type="text"
+                      name="name"
+                      value={med.name}
+                      onChange={(e) => handleMedicationChange(index, e)}
+                      className="w-full p-1 text-sm border rounded"
+                    />
+                  </td>
+                  <td className="py-2 px-3">
+                    <input
+                      type="text"
+                      name="dose"
+                      value={med.dose}
+                      onChange={(e) => handleMedicationChange(index, e)}
+                      className="w-full p-1 text-sm border rounded"
+                    />
+                  </td>
+                  <td className="py-2 px-3">
+                    <input
+                      type="text"
+                      name="frequency"
+                      value={med.frequency}
+                      onChange={(e) => handleMedicationChange(index, e)}
+                      className="w-full p-1 text-sm border rounded"
+                    />
+                  </td>
+                  <td className="py-2 px-3">
+                    <button
+                      type="button"
+                      onClick={() => removeMedication(index)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="text-gray-500">No medications recorded</p>
+        )}
+      </div>
 
-    {formData.medications?.length > 0 ? (
-      <table className="w-full">
-        <thead className="bg-green-100">
-          <tr>
-            <th className="text-left py-2 px-3">Medication</th>
-            <th className="text-left py-2 px-3">Dose</th>
-            <th className="text-left py-2 px-3">Frequency</th>
-            <th className="text-left py-2 px-3">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {formData.medications.map((med, index) => (
-            <tr key={`med-${index}`}>
-              <td className="py-2 px-3">
-                <input
-                  type="text"
-                  name="name"
-                  value={med.name}
-                  onChange={(e) => handleMedicationChange(index, e)}
-                  className="w-full p-1 text-sm border rounded"
-                />
-              </td>
-              <td className="py-2 px-3">
-                <input
-                  type="text"
-                  name="dose"
-                  value={med.dose}
-                  onChange={(e) => handleMedicationChange(index, e)}
-                  className="w-full p-1 text-sm border rounded"
-                />
-              </td>
-              <td className="py-2 px-3">
-                <input
-                  type="text"
-                  name="frequency"
-                  value={med.frequency}
-                  onChange={(e) => handleMedicationChange(index, e)}
-                  className="w-full p-1 text-sm border rounded"
-                />
-              </td>
-              <td className="py-2 px-3">
-                <button
-                  type="button"
-                  onClick={() => removeMedication(index)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    ) : (
-      <p className="text-gray-500">No medications recorded</p>
-    )}
-  </div>
-
-  <div className="flex justify-end gap-2 mt-4">
-    <button
-      type="button"
-      onClick={onCancel}
-      className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-    >
-      Cancel
-    </button>
-    <button
-      type="submit"
-      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-      disabled={isLoading}
-    >
-      {isLoading ? 'Updating...' : 'Update Baby'}
-    </button>
-  </div>
-</form>
-);
+      <div className="flex justify-end gap-2 mt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Updating...' : 'Update Baby'}
+        </button>
+      </div>
+    </form>
+  );
 };
 
 // EditForm Component
 const EditForm = ({
-formData,
-handleChange,
-isEditMode,
-handleBabyChange,
-handleMedicationChange,
-addBaby,
-removeBaby,
-addMedication,
-removeMedication,
-sectors,
-cells,
-villages,
-healthCenters,
-handleSectorChange,
-handleCellChange,
-handleVillageChange,
+  formData,
+  handleChange,
+  isEditMode,
+  handleBabyChange,
+  handleMedicationChange,
+  addBaby,
+  removeBaby,
+  addMedication,
+  removeMedication,
+  sectors,
+  cells,
+  villages,
+  healthCenters,
+  handleSectorChange,
+  handleCellChange,
+  handleVillageChange,
 }) => {
-return (
-<div className="space-y-6">
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div>
-<h3 className="text-lg font-medium text-green-700 mb-3">Mother Information</h3>
-<div className="space-y-4">
-<div>
-<label className="block text-sm font-medium text-gray-700 mb-1">
-Mother's Name *
-</label>
-<input type="text" name="motherName" value={formData.motherName} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required />
-</div>
-<div>
-<label className="block text-sm font-medium text-gray-700 mb-1">
-Mother's Phone *
-</label>
-<input type="text" name="motherPhone" value={formData.motherPhone} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required />
-</div>
-<div>
-<label className="block text-sm font-medium text-gray-700 mb-1">
-Mother's National ID *
-</label>
-<input type="text" name="motherNationalId" value={formData.motherNationalId} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required />
-</div>
-</div>
-</div>
-
-
-    <div>
-      <h3 className="text-lg font-medium text-green-700 mb-3">Father Information</h3>
-      <div className="space-y-4">
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Father's Name</label>
-          <input
-            type="text"
-            name="fatherName"
-            value={formData.fatherName}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Father's Phone</label>
-          <input
-            type="text"
-            name="fatherPhone"
-            value={formData.fatherPhone}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Father's National ID
-          </label>
-          <input
-            type="text"
-            name="fatherNationalId"
-            value={formData.fatherNationalId}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div>
-    <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
-        <input
-          type="date"
-          name="dateOfBirth"
-          value={formData.dateOfBirth}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type *</label>
-        <select
-          name="deliveryType"
-          value={formData.deliveryType}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        >
-          <option value="Normal">Normal</option>
-          <option value="C-section">C-section</option>
-          <option value="Assisted">Assisted</option>
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Health Center *</label>
-        <select
-          name="healthCenterId"
-          value={formData.healthCenterId}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        >
-          {healthCenters.map((hc, index) => (
-            <option key={`hc-${hc.id}-${index}`} value={hc.id}>
-              {hc.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Leave Status *</label>
-        <select
-          name="leave"
-          value={formData.leave}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        >
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
-        </select>
-      </div>
-      <div className="hidden">
-        <label className="block text-sm hidden font-medium text-gray-700 mb-1">Status *</label>
-        <select
-          name="status"
-          value={formData.status}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        >
-          <option value="go home">Go Home</option>
-          <option value="referred">Referred</option>
-          <option value="hospitalized">Hospitalized</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <div>
-    <h3 className="text-lg font-medium text-green-700 mb-3">Location</h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Sector *</label>
-        <select
-          name="sector_id"
-          value={formData.sector_id}
-          onChange={handleSectorChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        >
-          {sectors.map((sector) => (
-            <option key={`sector-${sector.id}`} value={sector.id}>
-              {sector.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Cell *</label>
-        <select
-          name="cell_id"
-          value={formData.cell_id}
-          onChange={handleCellChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-          disabled={!formData.sector_id}
-        >
-          <option value="">Select Cell</option>
-          {cells.map((cell) => (
-            <option key={`cell-${cell.id}`} value={cell.id}>
-              {cell.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Village *</label>
-        <select
-          name="village_id"
-          value={formData.village_id}
-          onChange={handleVillageChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-          disabled={!formData.cell_id}
-        >
-          <option value="">Select Village</option>
-          {villages.map((village) => (
-            <option key={`village-${village.id}`} value={village.id}>
-              {village.name}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  </div>
-
-  {!isEditMode && (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-medium text-green-700">Baby Information</h3>
-        <button
-          type="button"
-          onClick={addBaby}
-          className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add Another Baby
-        </button>
-      </div>
-
-      {formData.babies.map((baby, babyIndex) => (
-        <div key={`baby-form-${babyIndex}`} className="mb-6 p-4 bg-green-50 rounded">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="font-semibold text-green-800">Baby {babyIndex + 1}</h4>
-            {formData.babies.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeBaby(babyIndex)}
-                className="text-red-600 hover:text-red-800"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <h3 className="text-lg font-medium text-green-700 mb-3">Mother Information</h3>
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Mother's Name *
+              </label>
               <input
                 type="text"
-                name="name"
-                value={baby.name}
-                onChange={(e) => handleBabyChange(babyIndex, e)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-              <select
-                name="gender"
-                value={baby.gender}
-                onChange={(e) => handleBabyChange(babyIndex, e)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Birth Weight (kg) *
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                name="birthWeight"
-                value={baby.birthWeight}
-                onChange={(e) => handleBabyChange(babyIndex, e)}
+                name="motherName"
+                value={formData.motherName}
+                onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Discharge Weight (kg) *
+                Mother's Phone *
               </label>
               <input
-                type="number"
-                step="0.1"
-                name="dischargebirthWeight"
-                value={baby.dischargebirthWeight}
-                onChange={(e) => handleBabyChange(babyIndex, e)}
+                type="text"
+                name="motherPhone"
+                value={formData.motherPhone}
+                onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 required
               />
             </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h5 className="font-semibold text-green-800">Medications</h5>
-              <button
-                type="button"
-                onClick={() => addMedication(babyIndex)}
-                className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Add Medication
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Mother's National ID *
+              </label>
+              <input
+                type="text"
+                name="motherNationalId"
+                value={formData.motherNationalId}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+              />
             </div>
-
-            {baby.medications?.length > 0 ? (
-              <table className="w-full">
-                <thead className="bg-green-100">
-                  <tr>
-                    <th className="text-left py-2 px-3">Medication</th>
-                    <th className="text-left py-2 px-3">Dose</th>
-                    <th className="text-left py-2 px-3">Frequency</th>
-                    <th className="text-left py-2 px-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {baby.medications.map((med, medIndex) => (
-                    <tr key={`med-${medIndex}`}>
-                      <td className="py-2 px-3">
-                        <input
-                          type="text"
-                          name="name"
-                          value={med.name}
-                          onChange={(e) => handleMedicationChange(babyIndex, medIndex, e)}
-                          className="w-full p-1 text-sm border rounded"
-                        />
-                      </td>
-                      <td className="py-2 px-3">
-                        <input
-                          type="text"
-                          name="dose"
-                          value={med.dose}
-                          onChange={(e) => handleMedicationChange(babyIndex, medIndex, e)}
-                          className="w-full p-1 text-sm border rounded"
-                        />
-                      </td>
-                      <td className="py-2 px-3">
-                        <input
-                          type="text"
-                          name="frequency"
-                          value={med.frequency}
-                          onChange={(e) => handleMedicationChange(babyIndex, medIndex, e)}
-                          className="w-full p-1 text-sm border rounded"
-                        />
-                      </td>
-                      <td className="py-2 px-3">
-                        <button
-                          type="button"
-                          onClick={() => removeMedication(babyIndex, medIndex)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-gray-500">No medications recorded</p>
-            )}
           </div>
         </div>
-      ))}
+
+        <div>
+          <h3 className="text-lg font-medium text-green-700 mb-3">Father Information</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Father's Name</label>
+              <input
+                type="text"
+                name="fatherName"
+                value={formData.fatherName}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Father's Phone</label>
+              <input
+                type="text"
+                name="fatherPhone"
+                value={formData.fatherPhone}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Father's National ID
+              </label>
+              <input
+                type="text"
+                name="fatherNationalId"
+                value={formData.fatherNationalId}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type *</label>
+            <select
+              name="deliveryType"
+              value={formData.deliveryType}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              <option value="Normal">Normal</option>
+              <option value="C-section">C-section</option>
+              <option value="Assisted">Assisted</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Health Center *</label>
+            <select
+              name="healthCenterId"
+              value={formData.healthCenterId}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              {healthCenters.map((hc, index) => (
+                <option key={`hc-${hc.id}-${index}`} value={hc.id}>
+                  {hc.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Leave Status *</label>
+            <select
+              name="leave"
+              value={formData.leave}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div className="hidden">
+            <label className="block text-sm hidden font-medium text-gray-700 mb-1">Status *</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              <option value="go home">Go Home</option>
+              <option value="referred">Referred</option>
+              <option value="hospitalized">Hospitalized</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Location</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sector *</label>
+            <select
+              name="sector_id"
+              value={formData.sector_id}
+              onChange={handleSectorChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              {sectors.map((sector) => (
+                <option key={`sector-${sector.id}`} value={sector.id}>
+                  {sector.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cell *</label>
+            <select
+              name="cell_id"
+              value={formData.cell_id}
+              onChange={handleCellChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+              disabled={!formData.sector_id}
+            >
+              <option value="">Select Cell</option>
+              {cells.map((cell) => (
+                <option key={`cell-${cell.id}`} value={cell.id}>
+                  {cell.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Village *</label>
+            <select
+              name="village_id"
+              value={formData.village_id}
+              onChange={handleVillageChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+              disabled={!formData.cell_id}
+            >
+              <option value="">Select Village</option>
+              {villages.map((village) => (
+                <option key={`village-${village.id}`} value={village.id}>
+                  {village.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {!isEditMode && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-medium text-green-700">Baby Information</h3>
+            <button
+              type="button"
+              onClick={addBaby}
+              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Another Baby
+            </button>
+          </div>
+
+          {formData.babies.map((baby, babyIndex) => (
+            <div key={`baby-form-${babyIndex}`} className="mb-6 p-4 bg-green-50 rounded">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-semibold text-green-800">Baby {babyIndex + 1}</h4>
+                {formData.babies.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeBaby(babyIndex)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={baby.name}
+                    onChange={(e) => handleBabyChange(babyIndex, e)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+                  <select
+                    name="gender"
+                    value={baby.gender}
+                    onChange={(e) => handleBabyChange(babyIndex, e)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Birth Weight (kg) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    name="birthWeight"
+                    value={baby.birthWeight}
+                    onChange={(e) => handleBabyChange(babyIndex, e)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Discharge Weight (kg) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    name="dischargebirthWeight"
+                    value={baby.dischargebirthWeight}
+                    onChange={(e) => handleBabyChange(babyIndex, e)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className="font-semibold text-green-800">Medications</h5>
+                  <button
+                    type="button"
+                    onClick={() => addMedication(babyIndex)}
+                    className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Medication
+                  </button>
+                </div>
+
+                {baby.medications?.length > 0 ? (
+                  <table className="w-full">
+                    <thead className="bg-green-100">
+                      <tr>
+                        <th className="text-left py-2 px-3">Medication</th>
+                        <th className="text-left py-2 px-3">Dose</th>
+                        <th className="text-left py-2 px-3">Frequency</th>
+                        <th className="text-left py-2 px-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {baby.medications.map((med, medIndex) => (
+                        <tr key={`med-${medIndex}`}>
+                          <td className="py-2 px-3">
+                            <input
+                              type="text"
+                              name="name"
+                              value={med.name}
+                              onChange={(e) => handleMedicationChange(babyIndex, medIndex, e)}
+                              className="w-full p-1 text-sm border rounded"
+                            />
+                          </td>
+                          <td className="py-2 px-3">
+                            <input
+                              type="text"
+                              name="dose"
+                              value={med.dose}
+                              onChange={(e) => handleMedicationChange(babyIndex, medIndex, e)}
+                              className="w-full p-1 text-sm border rounded"
+                            />
+                          </td>
+                          <td className="py-2 px-3">
+                            <input
+                              type="text"
+                              name="frequency"
+                              value={med.frequency}
+                              onChange={(e) => handleMedicationChange(babyIndex, medIndex, e)}
+                              className="w-full p-1 text-sm border rounded"
+                            />
+                          </td>
+                          <td className="py-2 px-3">
+                            <button
+                              type="button"
+                              onClick={() => removeMedication(babyIndex, medIndex)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-gray-500">No medications recorded</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
-  )}
-</div>
-);
+  );
 };
 
 // AddBabyModal Component
 const AddBabyModal = ({ isOpen, onClose, bornId, onAddBaby, axiosInstance }) => {
-const [formData, setFormData] = useState({
-name: '',
-gender: 'Male',
-birthWeight: 0,
-dischargebirthWeight: 0,
-});
-const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    gender: 'Male',
+    birthWeight: 0,
+    dischargebirthWeight: 0,
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
-const handleChange = (e) => {
-const { name, value } = e.target;
-setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.post('/babies', formData);
+      onAddBaby(response.data);
+      onClose();
+    } catch (error) {
+      console.error('Error adding baby:', error);
+      alert('Failed to add baby. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Add New Baby</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+            <select
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            >
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Birth Weight (kg) *
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              name="birthWeight"
+              value={formData.birthWeight}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Discharge Weight (kg)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              name="dischargebirthWeight"
+              value={formData.dischargebirthWeight}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+
+          <div className="mt-6 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300"
+            >
+              {isLoading ? 'Adding...' : 'Add Baby'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 };
 
-const handleSubmit = async (e) => {
-e.preventDefault();
-try {
-setIsLoading(true);
-const response = await axiosInstance.post(
-'/babies',
-formData
-);
-onAddBaby(response.data);
-onClose();
-} catch (error) {
-console.error('Error adding baby:', error);
-alert('Failed to add baby. Please try again.');
-} finally {
-setIsLoading(false);
-}
-};
+// AddBabyForm Component
+const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
+  const [formData, setFormData] = useState({
+    bornId: bornId,
+    name: '',
+    gender: 'Male',
+    birthWeight: 0,
+    dischargebirthWeight: 0,
+    medications: [],
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
-if (!isOpen) return null;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-return (
-<div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
-<div className="bg-white rounded-lg p-6 w-full max-w-md">
-<div className="flex justify-between items-center mb-4">
-<h2 className="text-xl font-semibold">Add New Baby</h2>
-<button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-<X size={24} />
-</button>
-</div>
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
 
+      if (!formData.name.trim()) {
+        throw new Error('Baby name is required');
+      }
 
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          required
-        />
+      const babyData = {
+        ...formData,
+        birthWeight: parseFloat(formData.birthWeight) || 0,
+        dischargebirthWeight: parseFloat(formData.dischargebirthWeight) || 0,
+      };
+
+      await onAddBaby(babyData);
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Validation Error',
+        text: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <input type="hidden" name="bornId" value={formData.bornId} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+          <select
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+            required
+          >
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Birth Weight (kg) *
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            name="birthWeight"
+            value={formData.birthWeight}
+            onChange={handleChange}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Discharge Weight (kg)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            name="dischargebirthWeight"
+            value={formData.dischargebirthWeight}
+            onChange={handleChange}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+          />
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-        <select
-          name="gender"
-          value={formData.gender}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          required
-        >
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Birth Weight (kg) *
-        </label>
-        <input
-          type="number"
-          step="0.1"
-          name="birthWeight"
-          value={formData.birthWeight}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Discharge Weight (kg)
-        </label>
-        <input
-          type="number"
-          step="0.1"
-          name="dischargebirthWeight"
-          value={formData.dischargebirthWeight}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        />
-      </div>
-
-      <div className="mt-6 flex justify-end gap-2">
+      <div className="flex justify-end gap-2 pt-2">
         <button
           type="button"
-          onClick={onClose}
-          className="px-4 py-2 border border-gray-300 rounded-md"
+          onClick={onCancel}
+          className="px-3 py-1 text-sm border border-gray-300 rounded"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300"
+          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-green-300"
         >
           {isLoading ? 'Adding...' : 'Add Baby'}
         </button>
       </div>
     </form>
-  </div>
-</div>
-);
+  );
 };
 
-// AddBabyForm Component
-const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
-const [formData, setFormData] = useState({
-bornId: bornId,
-name: '',
-gender: 'Male',
-birthWeight: 0,
-dischargebirthWeight: 0,
-medications: [],
-});
-const [isLoading, setIsLoading] = useState(false);
-
-const handleChange = (e) => {
-const { name, value } = e.target;
-setFormData((prev) => ({
-...prev,
-[name]: value,
-}));
-};
-
-const handleSubmit = async (e) => {
-e.preventDefault();
-try {
-setIsLoading(true);
-
-
-  if (!formData.name.trim()) {
-    throw new Error('Baby name is required');
-  }
-
-  const babyData = {
-    ...formData,
-    birthWeight: parseFloat(formData.birthWeight) || 0,
-    dischargebirthWeight: parseFloat(formData.dischargebirthWeight) || 0,
-  };
-
-  await onAddBaby(babyData);
-} catch (error) {
-  Swal.fire({
-    icon: 'error',
-    title: 'Validation Error',
-    text: error.message,
-  });
-} finally {
-  setIsLoading(false);
-}
-};
-
-return (
-<form onSubmit={handleSubmit} className="space-y-3">
-<input type="hidden" name="bornId" value={formData.bornId} />
-
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-      <input
-        type="text"
-        name="name"
-        value={formData.name}
-        onChange={handleChange}
-        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-        required
-      />
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-      <select
-        name="gender"
-        value={formData.gender}
-        onChange={handleChange}
-        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-        required
-      >
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Birth Weight (kg) *
-      </label>
-      <input
-        type="number"
-        step="0.01"
-        min="0"
-        name="birthWeight"
-        value={formData.birthWeight}
-        onChange={handleChange}
-        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-        required
-      />
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Discharge Weight (kg)
-      </label>
-      <input
-        type="number"
-        step="0.01"
-        min="0"
-        name="dischargebirthWeight"
-        value={formData.dischargebirthWeight}
-        onChange={handleChange}
-        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-      />
-    </div>
-  </div>
-
-  <div className="flex justify-end gap-2 pt-2">
-    <button
-      type="button"
-      onClick={onCancel}
-      className="px-3 py-1 text-sm border border-gray-300 rounded"
-    >
-      Cancel
-    </button>
-    <button
-      type="submit"
-      disabled={isLoading}
-      className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-green-300"
-    >
-      {isLoading ? 'Adding...' : 'Add Baby'}
-    </button>
-  </div>
-</form>
-);
-};
-
-const AddAppointmentForm = ({ 
-  bornId, 
-  babyId, 
-  onAddAppointment, 
-  onCancel, 
-  onSuccess, 
-  axiosInstance 
+const AddAppointmentForm = ({
+  bornId,
+  babyId,
+  onAddAppointment,
+  onCancel,
+  onSuccess,
+  axiosInstance,
 }) => {
   const [formData, setFormData] = useState({
     babyId: babyId,
@@ -2356,45 +2389,46 @@ const AddAppointmentForm = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-            <input 
-              type="date" 
-              name="date" 
-              value={formData.date} 
-              onChange={handleChange} 
-              className="w-full px-2 py-1 border border-gray-300 rounded text-sm" 
-              required 
+            <input
+              type="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+              required
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Time *</label>
-            <input 
-              type="time" 
-              name="time" 
-              value={formData.time} 
-              onChange={handleChange} 
-              className="w-full px-2 py-1 border border-gray-300 rounded text-sm" 
-              required 
+            <input
+              type="time"
+              name="time"
+              value={formData.time}
+              onChange={handleChange}
+              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+              required
             />
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Purpose *</label>
-            <input 
-              type="text" 
-              name="purpose" 
-              value={formData.purpose} 
-              onChange={handleChange} 
-              className="w-full px-2 py-1 border border-gray-300 rounded text-sm" 
-              required 
+            <input
+              type="text"
+              name="purpose"
+              value={formData.purpose}
+              onChange={handleChange}
+              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+              required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
-            <select 
-              name="status" 
-              value={formData.status} 
-              onChange={handleChange} 
-              className="w-full px-2 py-1 border border-gray-300 rounded text-sm" 
-              required 
+            <label className="hidden text-sm font-medium text-gray-700 mb-1">Status *</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+              // required
+              hidden
             >
               <option value="Scheduled">Scheduled</option>
               <option value="Completed">Completed</option>
@@ -2403,16 +2437,16 @@ const AddAppointmentForm = ({
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button 
-            type="button" 
-            onClick={onCancel} 
+          <button
+            type="button"
+            onClick={onCancel}
             className="px-3 py-1 text-sm border border-gray-300 rounded"
           >
             Cancel
           </button>
-          <button 
-            type="submit" 
-            disabled={isLoading} 
+          <button
+            type="submit"
+            disabled={isLoading}
             className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-green-300"
           >
             {isLoading ? 'Adding...' : 'Add Appointment'}

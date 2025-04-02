@@ -21,13 +21,12 @@ const AppointmentPage = () => {
     appointmentId: '',
     weight: '',
     feedback: '',
-    nextAppointmentDate: '',
     status: 'Healthy',
   });
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
 
   // API configuration
-  const API_BASE_URL = 'https://digitalbackend-uobz.onrender.com/api/v1';
+  const API_BASE_URL = import.meta.env.VITE_API_KEY;
   const token = Cookies.get('token');
 
   const axiosInstance = axios.create({
@@ -73,14 +72,14 @@ const AppointmentPage = () => {
 
   // Update appointment status
   const updateAppointmentStatus = async (appointmentId, status) => {
-  try {
-    const response = await axiosInstance.put(`/appointments/${appointmentId}`, { status });
-    return response.status === 200;
-  } catch (error) {
-    console.error('Failed to update appointment status:', error);
-    return false;
-  }
-};
+    try {
+      const response = await axiosInstance.put(`/appointments/${appointmentId}`, { status });
+      return response.status === 200;
+    } catch (error) {
+      console.error('Failed to update appointment status:', error);
+      return false;
+    }
+  };
 
   // Sorting logic
   const requestSort = (key) => {
@@ -110,7 +109,9 @@ const AppointmentPage = () => {
 
         const matchesPatient =
           appointment.birthRecord?.motherName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          appointment.birthRecord?.motherNationalId?.toLowerCase().includes(searchTerm.toLowerCase());
+          appointment.birthRecord?.motherNationalId
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase());
 
         return matchesAppointment || matchesPatient;
       });
@@ -166,75 +167,75 @@ const AppointmentPage = () => {
     setCurrentAppointment(appointment);
     setIsModalOpen(true);
     setShowFeedbackForm(false);
-    
+
     // Set initial babyId to the first baby if available
     const initialBabyId = appointment.birthRecord?.babies?.[0]?.id || '';
-    
+
     setFeedbackForm({
       appointmentId: appointment.id,
       babyId: initialBabyId,
       weight: '',
       status: 'Healthy',
       feedback: '',
-      nextAppointmentDate: ''
     });
   };
 
   // Submit feedback
   const submitFeedback = async () => {
-  try {
-    setIsLoading(true);
-    
-    // Validate required fields
-    if (!feedbackForm.weight || !feedbackForm.status || !feedbackForm.appointmentId || !feedbackForm.babyId) {
-      showAlert('error', 'All fields are required');
-      return;
+    try {
+      setIsLoading(true);
+
+      // Validate required fields
+      if (
+        !feedbackForm.weight ||
+        !feedbackForm.status ||
+        !feedbackForm.appointmentId ||
+        !feedbackForm.babyId
+      ) {
+        showAlert('error', 'All fields are required');
+        return;
+      }
+
+      // Prepare payload
+      const payload = {
+        appointmentId: Number(feedbackForm.appointmentId),
+        babyId: Number(feedbackForm.babyId),
+        weight: Number(feedbackForm.weight),
+        status: feedbackForm.status,
+        feedback: feedbackForm.feedback || null,
+      };
+
+      // First update the appointment status to completed
+      const statusUpdated = await updateAppointmentStatus(feedbackForm.appointmentId, 'Completed');
+
+      if (!statusUpdated) {
+        throw new Error('Failed to update appointment status');
+      }
+
+      // Then submit the feedback
+      await axiosInstance.post('/appointmentFeedbacks', payload);
+
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Feedback saved successfully!',
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      // Refresh data and close modal
+      await fetchAppointments();
+      setShowFeedbackForm(false);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      const errorMessage =
+        error.response?.data?.message || error.response?.data?.error || 'Failed to save feedback';
+      showAlert('error', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Prepare payload
-    const payload = {
-      appointmentId: Number(feedbackForm.appointmentId),
-      babyId: Number(feedbackForm.babyId),
-      weight: Number(feedbackForm.weight),
-      status: feedbackForm.status,
-      feedback: feedbackForm.feedback || null,
-      nextAppointmentDate: feedbackForm.nextAppointmentDate || null
-    };
-
-    // First update the appointment status to completed
-    const statusUpdated = await updateAppointmentStatus(feedbackForm.appointmentId, 'Completed');
-    
-    if (!statusUpdated) {
-      throw new Error('Failed to update appointment status');
-    }
-
-    // Then submit the feedback
-    await axiosInstance.post('/appointmentFeedbacks', payload);
-
-    // Show success message
-    await Swal.fire({
-      icon: 'success',
-      title: 'Feedback saved successfully!',
-      showConfirmButton: false,
-      timer: 1500
-    });
-
-    // Refresh data and close modal
-    await fetchAppointments();
-    setShowFeedbackForm(false);
-    setIsModalOpen(false);
-  } catch (error) {
-    console.error('Error submitting feedback:', error);
-    const errorMessage = error.response?.data?.message || 
-                        error.response?.data?.error || 
-                        'Failed to save feedback';
-    showAlert('error', errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-
+  };
 
   return (
     <div className="bg-white min-h-screen p-6">
@@ -289,9 +290,7 @@ const AppointmentPage = () => {
 
       {/* Appointments Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {isLoading && (
-          <div className="p-4 text-center text-gray-500">Loading appointments...</div>
-        )}
+        {isLoading && <div className="p-4 text-center text-gray-500">Loading appointments...</div>}
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -439,19 +438,28 @@ const AppointmentPage = () => {
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-medium text-green-700 mb-3">Appointment Information</h3>
+                  <h3 className="text-lg font-medium text-green-700 mb-3">
+                    Appointment Information
+                  </h3>
                   <div className="space-y-2">
-                    <p><span className="font-semibold">Date:</span> {formatDate(currentAppointment.date)}</p>
-                    <p><span className="font-semibold">Purpose:</span> {currentAppointment.purpose}</p>
+                    <p>
+                      <span className="font-semibold">Date:</span>{' '}
+                      {formatDate(currentAppointment.date)}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Purpose:</span> {currentAppointment.purpose}
+                    </p>
                     <p>
                       <span className="font-semibold">Status:</span>{' '}
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        currentAppointment.status === 'Scheduled'
-                          ? 'bg-blue-100 text-blue-800'
-                          : currentAppointment.status === 'Completed'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                      }`}>
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          currentAppointment.status === 'Scheduled'
+                            ? 'bg-blue-100 text-blue-800'
+                            : currentAppointment.status === 'Completed'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
                         {currentAppointment.status}
                       </span>
                     </p>
@@ -462,12 +470,24 @@ const AppointmentPage = () => {
                   <div>
                     <h3 className="text-lg font-medium text-green-700 mb-3">Patient Information</h3>
                     <div className="space-y-2">
-                      <p><span className="font-semibold">Mother:</span> {currentAppointment.birthRecord.motherName}</p>
-                      <p><span className="font-semibold">Mother ID:</span> {currentAppointment.birthRecord.motherNationalId}</p>
+                      <p>
+                        <span className="font-semibold">Mother:</span>{' '}
+                        {currentAppointment.birthRecord.motherName}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Mother ID:</span>{' '}
+                        {currentAppointment.birthRecord.motherNationalId}
+                      </p>
                       {currentAppointment.birthRecord.fatherName && (
-                        <p><span className="font-semibold">Father:</span> {currentAppointment.birthRecord.fatherName}</p>
+                        <p>
+                          <span className="font-semibold">Father:</span>{' '}
+                          {currentAppointment.birthRecord.fatherName}
+                        </p>
                       )}
-                      <p><span className="font-semibold">Number of Babies:</span> {currentAppointment.birthRecord.babyCount}</p>
+                      <p>
+                        <span className="font-semibold">Number of Babies:</span>{' '}
+                        {currentAppointment.birthRecord.babyCount}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -490,7 +510,7 @@ const AppointmentPage = () => {
                 {showFeedbackForm && (
                   <div className="mt-4 bg-green-50 p-4 rounded-lg">
                     <h4 className="text-lg font-medium text-green-700 mb-4">Add Feedback</h4>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Baby Selection */}
                       {currentAppointment.birthRecord?.babies?.length > 0 && (
@@ -501,12 +521,15 @@ const AppointmentPage = () => {
                           <select
                             className="w-full px-3 py-2 border border-gray-300 rounded-md"
                             value={feedbackForm.babyId}
-                            onChange={(e) => setFeedbackForm({ ...feedbackForm, babyId: e.target.value })}
+                            onChange={(e) =>
+                              setFeedbackForm({ ...feedbackForm, babyId: e.target.value })
+                            }
                             required
                           >
                             {currentAppointment.birthRecord.babies.map((baby) => (
                               <option key={baby.id} value={baby.id}>
-                                {baby.name || `Baby ${baby.id}`} ({baby.gender}) - {baby.birthWeight}kg
+                                {baby.name || `Baby ${baby.id}`} ({baby.gender}) -{' '}
+                                {baby.birthWeight}kg
                               </option>
                             ))}
                           </select>
@@ -523,7 +546,9 @@ const AppointmentPage = () => {
                           min="0"
                           className="w-full px-3 py-2 border border-gray-300 rounded-md"
                           value={feedbackForm.weight}
-                          onChange={(e) => setFeedbackForm({ ...feedbackForm, weight: e.target.value })}
+                          onChange={(e) =>
+                            setFeedbackForm({ ...feedbackForm, weight: e.target.value })
+                          }
                           required
                         />
                       </div>
@@ -535,7 +560,9 @@ const AppointmentPage = () => {
                         <select
                           className="w-full px-3 py-2 border border-gray-300 rounded-md"
                           value={feedbackForm.status}
-                          onChange={(e) => setFeedbackForm({ ...feedbackForm, status: e.target.value })}
+                          onChange={(e) =>
+                            setFeedbackForm({ ...feedbackForm, status: e.target.value })
+                          }
                           required
                         >
                           <option value="Healthy">Healthy</option>
@@ -545,21 +572,7 @@ const AppointmentPage = () => {
                         </select>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Next Appointment Date
-                        </label>
-                        <input
-                          type="date"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                          value={feedbackForm.nextAppointmentDate}
-                          onChange={(e) => setFeedbackForm({ 
-                            ...feedbackForm, 
-                            nextAppointmentDate: e.target.value 
-                          })}
-                          min={new Date().toISOString().split('T')[0]}
-                        />
-                      </div>
+                
 
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -569,7 +582,9 @@ const AppointmentPage = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md"
                           rows={3}
                           value={feedbackForm.feedback}
-                          onChange={(e) => setFeedbackForm({ ...feedbackForm, feedback: e.target.value })}
+                          onChange={(e) =>
+                            setFeedbackForm({ ...feedbackForm, feedback: e.target.value })
+                          }
                         />
                       </div>
                     </div>
@@ -586,7 +601,12 @@ const AppointmentPage = () => {
                         type="button"
                         onClick={submitFeedback}
                         className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300"
-                        disabled={!feedbackForm.weight || !feedbackForm.status || !feedbackForm.babyId || isLoading}
+                        disabled={
+                          !feedbackForm.weight ||
+                          !feedbackForm.status ||
+                          !feedbackForm.babyId ||
+                          isLoading
+                        }
                       >
                         {isLoading ? 'Saving...' : 'Save Feedback'}
                       </button>
@@ -599,12 +619,17 @@ const AppointmentPage = () => {
                     {currentAppointment.appointmentFeedback.map((feedback, index) => (
                       <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <p><span className="font-semibold">Baby:</span> {feedback.baby?.name || `Baby ${feedback.baby?.id}`}</p>
-                          <p><span className="font-semibold">Weight:</span> {feedback.weight} kg</p>
-                          <p><span className="font-semibold">Status:</span> {feedback.status}</p>
-                          {feedback.nextAppointmentDate && (
-                            <p><span className="font-semibold">Next Appointment:</span> {formatDate(feedback.nextAppointmentDate)}</p>
-                          )}
+                          <p>
+                            <span className="font-semibold">Baby:</span>{' '}
+                            {feedback.baby?.name || `Baby ${feedback.baby?.id}`}
+                          </p>
+                          <p>
+                            <span className="font-semibold">Weight:</span> {feedback.weight} kg
+                          </p>
+                          <p>
+                            <span className="font-semibold">Status:</span> {feedback.status}
+                          </p>
+                          
                           {feedback.feedback && (
                             <p className="md:col-span-2">
                               <span className="font-semibold">Notes:</span> {feedback.feedback}

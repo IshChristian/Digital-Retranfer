@@ -12,6 +12,7 @@ import Notification from './pages/notifications';
 import ForgetPassword from './pages/emailVerification';
 import NotFound from './pages/notfound';
 import Login from './pages/login';
+import Report from './pages/report';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -93,6 +94,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Notification />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/report"
+          element={
+            <ProtectedRoute>
+              <Report />
             </ProtectedRoute>
           }
         />

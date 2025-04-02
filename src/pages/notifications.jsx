@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Trash2, Eye, X, Check, Bell, BellOff, Mail, MailOpen, Trash } from 'lucide-react';
+import { Search, Trash2, Eye, X, Check, Bell, BellOff, Mail, MailOpen, Trash, ArrowUp, ArrowDown } from 'lucide-react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import Swal from 'sweetalert2';
@@ -12,6 +12,7 @@ const NotificationsPage = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentNotification, setCurrentNotification] = useState(null);
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
 
   // Setup axios instance with token
   const API_URL = import.meta.env.VITE_API_KEY;
@@ -29,21 +30,30 @@ const NotificationsPage = () => {
     fetchNotifications();
   }, []);
 
-  // Filter notifications based on search term
+  // Filter and sort notifications based on search term and sort order
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredNotifications(notifications);
-    } else {
-      const filtered = notifications.filter(
+    let filtered = [...notifications];
+    
+    // Apply search filter
+    if (searchTerm.trim() !== '') {
+      filtered = filtered.filter(
         (notification) =>
           (notification.title &&
             notification.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (notification.message &&
             notification.message.toLowerCase().includes(searchTerm.toLowerCase()))
       );
-      setFilteredNotifications(filtered);
     }
-  }, [searchTerm, notifications]);
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+    
+    setFilteredNotifications(filtered);
+  }, [searchTerm, notifications, sortOrder]);
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -52,8 +62,15 @@ const NotificationsPage = () => {
       const { data } = await axiosInstance.get('/notification');
 
       if (data.success) {
-        setNotifications(data.data || []);
-        setFilteredNotifications(data.data || []);
+        // Initial sort by newest first
+        const sortedData = [...(data.data || [])].sort((a, b) => {
+          const dateA = new Date(a.createdAt);
+          const dateB = new Date(b.createdAt);
+          return dateB - dateA; // Newest first by default
+        });
+        
+        setNotifications(sortedData);
+        setFilteredNotifications(sortedData);
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (err) {
@@ -61,6 +78,11 @@ const NotificationsPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Toggle sort order
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
   };
 
   // View notification (marks as read when opened)
@@ -137,6 +159,34 @@ const NotificationsPage = () => {
     return new Date(dateString).toLocaleString();
   };
 
+  // Format relative time (e.g., "2 minutes ago")
+  const formatRelativeTime = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} second${diffInSeconds !== 1 ? 's' : ''} ago`;
+    }
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
+    }
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
+    }
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) {
+      return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
+    }
+    
+    return date.toLocaleDateString();
+  };
+
   return (
     <div className="bg-white min-h-screen p-6">
       {/* Header */}
@@ -171,6 +221,18 @@ const NotificationsPage = () => {
         </div>
 
         <div className="flex space-x-2">
+          <button
+            onClick={toggleSortOrder}
+            className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            title={sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}
+          >
+            {sortOrder === 'newest' ? (
+              <ArrowDown className="h-5 w-5 mr-1" />
+            ) : (
+              <ArrowUp className="h-5 w-5 mr-1" />
+            )}
+            Sort
+          </button>
           <button
             onClick={markAllAsRead}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -208,7 +270,17 @@ const NotificationsPage = () => {
                   Preview
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
-                  Date
+                  <button 
+                    onClick={toggleSortOrder}
+                    className="flex items-center hover:text-green-800"
+                  >
+                    Date
+                    {sortOrder === 'newest' ? (
+                      <ArrowDown className="ml-1 h-4 w-4" />
+                    ) : (
+                      <ArrowUp className="ml-1 h-4 w-4" />
+                    )}
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
                   Actions
@@ -243,8 +315,8 @@ const NotificationsPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {formatDate(notification.createdAt)}
+                      <div className="text-sm text-gray-500" title={formatDate(notification.createdAt)}>
+                        {formatRelativeTime(notification.createdAt)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
