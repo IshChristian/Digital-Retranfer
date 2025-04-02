@@ -4,12 +4,10 @@ import Cookies from 'js-cookie';
 
 // Pages
 import Dashboard from './pages/dashboard';
-import Born from './pages/born';
 import NewBaby from './pages/baby';
 import Users from './pages/users';
 import HealthCenter from './pages/healthcenter';
 import Appointment from './pages/appointment';
-import Feedback from './pages/feedback';
 import Notification from './pages/notifications';
 import ForgetPassword from './pages/emailVerification';
 import NotFound from './pages/notfound';
@@ -82,28 +80,10 @@ function App() {
         />
 
         <Route
-          path="/babies"
-          element={
-            <ProtectedRoute>
-              <Born />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
           path="/appointments"
           element={
             <ProtectedRoute>
               <Appointment />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/feedbacks"
-          element={
-            <ProtectedRoute>
-              <Feedback />
             </ProtectedRoute>
           }
         />

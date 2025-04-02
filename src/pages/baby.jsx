@@ -462,6 +462,8 @@ const BornPage = () => {
       }));
       
       await Swal.fire('Success', 'Baby updated successfully', 'success');
+       // Close the modal after successful update
+      setIsViewModalOpen(false);
       return true;
     }
   } catch (error) {
