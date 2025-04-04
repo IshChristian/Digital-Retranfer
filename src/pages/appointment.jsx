@@ -16,6 +16,7 @@ const AppointmentPage = () => {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [currentAppointment, setCurrentAppointment] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userRole, setUserRole] = useState(Cookies.get('role') || '');
   const [feedbackForm, setFeedbackForm] = useState({
     babyId: '',
     appointmentId: '',
@@ -28,6 +29,7 @@ const AppointmentPage = () => {
   // API configuration
   const API_BASE_URL = import.meta.env.VITE_API_KEY;
   const token = Cookies.get('token');
+  const isPediatrition = userRole === 'pediatrition';
 
   const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
@@ -497,14 +499,15 @@ const AppointmentPage = () => {
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-medium text-green-700">Feedback Records</h3>
-                  {!showFeedbackForm && (
-                    <button
-                      onClick={() => setShowFeedbackForm(true)}
-                      className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center"
-                    >
-                      Add Feedback
-                    </button>
-                  )}
+                  {!showFeedbackForm ||
+                    (!isPediatrition && (
+                      <button
+                        onClick={() => setShowFeedbackForm(true)}
+                        className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center"
+                      >
+                        Add Feedback
+                      </button>
+                    ))}
                 </div>
 
                 {showFeedbackForm && (
@@ -572,8 +575,6 @@ const AppointmentPage = () => {
                         </select>
                       </div>
 
-                
-
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Notes
@@ -629,7 +630,7 @@ const AppointmentPage = () => {
                           <p>
                             <span className="font-semibold">Status:</span> {feedback.status}
                           </p>
-                          
+
                           {feedback.feedback && (
                             <p className="md:col-span-2">
                               <span className="font-semibold">Notes:</span> {feedback.feedback}

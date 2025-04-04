@@ -1856,7 +1856,7 @@ const EditForm = ({
             </select>
           </div>
           <div className="hidden">
-            <label className="block text-sm hidden font-medium text-gray-700 mb-1">Status *</label>
+            <label className="text-sm hidden font-medium text-gray-700 mb-1">Status *</label>
             <select
               name="status"
               value={formData.status}
