@@ -358,8 +358,8 @@ export default function HealthCenterManagement() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredCenters.length > 0 ? (
-                filteredCenters.map((center, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
+                filteredCenters.map((center) => (
+                  <tr key={center.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -374,8 +374,9 @@ export default function HealthCenterManagement() {
                       {getSectorName(center.sectorId)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {center.head.firstname}
-                      {center.head.lastname}
+                      {center.head
+                        ? `${center.head.firstname} ${center.head.lastname}`
+                        : 'Not assigned'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
@@ -390,7 +391,7 @@ export default function HealthCenterManagement() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="3" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
                     {isLoading ? 'Loading...' : 'No health centers found'}
                   </td>
                 </tr>

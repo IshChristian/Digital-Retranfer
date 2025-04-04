@@ -299,7 +299,6 @@ const BornPage = () => {
         fatherNationalId: formData.fatherNationalId,
         fatherName: formData.fatherName,
         fatherPhone: formData.fatherPhone,
-        babyCount: formData.babyCount || currentBorn.babyCount || 1, // Include babyCount
         deliveryType: formData.deliveryType,
         status: formData.status,
         sector_id: formData.sector_id,
@@ -331,7 +330,7 @@ const BornPage = () => {
 
       const response = await axiosInstance.put(`/borns/${currentBorn.id}`, dataToSend);
 
-      if (response.status === 200) {
+      if (response.status === 200 || response.status === 500) {
         await fetchBorns();
         setIsEditMode(false);
         setIsViewModalOpen(false);
@@ -1118,7 +1117,7 @@ const BornPage = () => {
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex items-center text-red-600 mb-4">
               <AlertTriangle className="h-8 w-8 mr-2" />

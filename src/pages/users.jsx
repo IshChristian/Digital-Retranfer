@@ -190,11 +190,22 @@ export default function UserManagementPage() {
         return;
       }
 
-      // Prepare the data to be sent
+      // Prepare the data to be sent - only include healthCenterId when needed
       const userData = {
-        ...formData,
+        firstname: formData.firstname,
+        lastname: formData.lastname,
+        email: formData.email,
         phone: formData.phone.startsWith('+250') ? formData.phone : `250${formData.phone}`,
+        role: formData.role,
+        gender: formData.gender,
+        ...(formData.address && { address: formData.address }),
+        // Only include healthCenterId if the role requires it and it's provided
+        ...(formData.role === 'head_of_community_workers_at_helth_center' && {
+          healthCenterId: formData.healthCenterId,
+        }),
       };
+
+      console.log('Sending update data:', userData);
 
       const token = Cookies.get('token');
 
