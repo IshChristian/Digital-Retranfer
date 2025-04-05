@@ -28,7 +28,8 @@ export default function UserManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Changed to true initially
+  const [isHealthCentersLoading, setIsHealthCentersLoading] = useState(true);
 
   const token = Cookies.get('token');
   const API_BASE_URL = import.meta.env.VITE_API_KEY;
@@ -83,6 +84,7 @@ export default function UserManagementPage() {
 
   const fetchUsers = async () => {
     try {
+      setIsLoading(true);
       const response = await axios.get(`${API_BASE_URL}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -91,11 +93,14 @@ export default function UserManagementPage() {
     } catch (error) {
       console.error('Error fetching users:', error);
       showAlert('error', error.response?.data?.message || 'Failed to load users');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const fetchHealthCenters = async () => {
     try {
+      setIsHealthCentersLoading(true);
       const response = await axios.get(`${API_BASE_URL}/healthcenters`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -103,6 +108,8 @@ export default function UserManagementPage() {
     } catch (error) {
       console.error('Error fetching health centers:', error);
       showAlert('error', error.response?.data?.message || 'Failed to load health centers');
+    } finally {
+      setIsHealthCentersLoading(false);
     }
   };
 
@@ -347,6 +354,49 @@ export default function UserManagementPage() {
   // Check if current role is head_of_community_workers_at_helth_center
   const isHeadOfCommunityWorkers = formData.role === 'head_of_community_workers_at_helth_center';
 
+  // Skeleton Loader Components
+  const TableRowSkeleton = () => (
+    <tr className="animate-pulse">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 h-8 w-8 bg-gray-200 rounded-full"></div>
+          <div className="ml-4 space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+            <div className="h-3 bg-gray-200 rounded w-16"></div>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded w-32"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded w-24"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-6 bg-gray-200 rounded w-20"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex space-x-4">
+          <div className="h-6 w-6 bg-gray-200 rounded"></div>
+          <div className="h-6 w-6 bg-gray-200 rounded"></div>
+        </div>
+      </td>
+    </tr>
+  );
+
+  const FilterSkeleton = () => (
+    <div className="relative w-full md:w-64">
+      <div className="h-10 bg-gray-200 rounded-lg w-full"></div>
+    </div>
+  );
+
+  const HealthCenterSelectSkeleton = () => (
+    <div>
+      <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+      <div className="h-10 bg-gray-200 rounded-md w-full"></div>
+    </div>
+  );
+
   return (
     <div className="bg-white min-h-screen p-6">
       {/* Header */}
@@ -358,46 +408,58 @@ export default function UserManagementPage() {
       {/* Filters and Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div className="flex gap-4 w-full">
-          <div className="relative w-full md:w-64">
-            <input
-              type="text"
-              placeholder="Search users..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={searchTerm}
-              onChange={handleSearch}
-            />
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          </div>
+          {isLoading ? (
+            <>
+              <FilterSkeleton />
+              <FilterSkeleton />
+            </>
+          ) : (
+            <>
+              <div className="relative w-full md:w-64">
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500"
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+                <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+              </div>
 
-          <div className="relative w-full md:w-64">
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none"
-            >
-              <option value="">All Roles</option>
-              {roles.map((role) => (
-                <option key={role.value} value={role.value}>
-                  {role.label}
-                </option>
-              ))}
-            </select>
-            <Filter className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          </div>
+              <div className="relative w-full md:w-64">
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none"
+                >
+                  <option value="">All Roles</option>
+                  {roles.map((role) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
+                <Filter className="absolute left-3 top-2.5 text-gray-400" size={18} />
+              </div>
+            </>
+          )}
         </div>
 
-        <button
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-          onClick={() => {
-            resetForm();
-            setIsAddModalOpen(true);
-          }}
-        >
-          <Plus size={18} />
-          Add New User
-        </button>
+        {!isLoading && (
+          <button
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            onClick={() => {
+              resetForm();
+              setIsAddModalOpen(true);
+            }}
+          >
+            <Plus size={18} />
+            Add New User
+          </button>
+        )}
       </div>
 
+      {/* Users Table */}
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
@@ -422,7 +484,12 @@ export default function UserManagementPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.length > 0 ? (
+              {isLoading ? (
+                // Show skeleton loaders while loading
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRowSkeleton key={`skeleton-${index}`} />
+                ))
+              ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -476,7 +543,7 @@ export default function UserManagementPage() {
           </table>
         </div>
         {/* Pagination */}
-        {filteredUsers.length > usersPerPage && (
+        {!isLoading && filteredUsers.length > usersPerPage && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
             <div className="text-sm text-gray-700">
               Showing <span className="font-medium">{(currentPage - 1) * usersPerPage + 1}</span> to{' '}
@@ -517,6 +584,7 @@ export default function UserManagementPage() {
         )}
       </div>
 
+      {/* Add User Modal */}
       {/* Add User Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
@@ -614,23 +682,29 @@ export default function UserManagementPage() {
               {/* Health Center - only shown for head_of_community_workers_at_helth_center role */}
               {isHeadOfCommunityWorkers && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Health Center*
-                  </label>
-                  <select
-                    name="healthCenterId"
-                    value={formData.healthCenterId}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    required={isHeadOfCommunityWorkers}
-                  >
-                    <option value="">Select Health Center</option>
-                    {healthCenters.map((center) => (
-                      <option key={center.id} value={center.id}>
-                        {center.name}
-                      </option>
-                    ))}
-                  </select>
+                  {isHealthCentersLoading ? (
+                    <HealthCenterSelectSkeleton />
+                  ) : (
+                    <>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Health Center*
+                      </label>
+                      <select
+                        name="healthCenterId"
+                        value={formData.healthCenterId}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        required={isHeadOfCommunityWorkers}
+                      >
+                        <option value="">Select Health Center</option>
+                        {healthCenters.map((center) => (
+                          <option key={center.id} value={center.id}>
+                            {center.name}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -672,7 +746,6 @@ export default function UserManagementPage() {
       )}
 
       {/* View/Edit User Modal */}
-      {/* View User Modal (simplified without edit capability) */}
       {isViewModalOpen && currentUser && (
         <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto">

@@ -716,6 +716,73 @@ const BornPage = () => {
   const goToPreviousPage = () => setCurrentPage(Math.max(1, currentPage - 1));
   const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1));
 
+  // Skeleton Loader Components
+  const TableRowSkeleton = () => (
+    <tr className="animate-pulse">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded w-24"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-32"></div>
+          <div className="h-3 bg-gray-200 rounded w-24"></div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-16"></div>
+          <div className="h-3 bg-gray-200 rounded w-32"></div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-6 bg-gray-200 rounded w-16"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex space-x-2">
+          <div className="h-6 w-6 bg-gray-200 rounded"></div>
+          <div className="h-6 w-6 bg-gray-200 rounded"></div>
+        </div>
+      </td>
+    </tr>
+  );
+
+  const InputSkeleton = () => (
+    <div className="space-y-1">
+      <div className="h-4 bg-gray-200 rounded w-24"></div>
+      <div className="h-10 bg-gray-200 rounded-md"></div>
+    </div>
+  );
+
+  const SelectSkeleton = () => (
+    <div className="space-y-1">
+      <div className="h-4 bg-gray-200 rounded w-24"></div>
+      <div className="h-10 bg-gray-200 rounded-md"></div>
+    </div>
+  );
+
+  const BabyCardSkeleton = () => (
+    <div className="bg-green-50 p-4 rounded-lg animate-pulse">
+      <div className="flex justify-between mb-4">
+        <div className="h-5 bg-gray-200 rounded w-24"></div>
+        <div className="h-5 w-5 bg-gray-200 rounded"></div>
+      </div>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-16"></div>
+          <div className="h-4 bg-gray-200 rounded w-32"></div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-16"></div>
+          <div className="h-4 bg-gray-200 rounded w-32"></div>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 bg-gray-200 rounded w-16"></div>
+        <div className="h-4 bg-gray-200 rounded w-full"></div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-white min-h-screen p-4 md:p-6">
       {/* Header */}
@@ -726,83 +793,92 @@ const BornPage = () => {
 
       {/* Filters and Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
-          {/* Search Input */}
-          <div className="relative w-full md:w-64">
-            <input
-              type="text"
-              placeholder="Search by name, phone..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
-              value={searchTerm}
-              onChange={handleSearch}
-              aria-label="Search"
-            />
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          </div>
+        {isLoading ? (
+          <>
+            <div className="relative w-full md:w-64 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="relative w-32 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="relative w-24 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+          </>
+        ) : (
+          <>
+            <div className="relative w-full md:w-64">
+              <input
+                type="text"
+                placeholder="Search by name, phone..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
+                value={searchTerm}
+                onChange={handleSearch}
+                aria-label="Search"
+              />
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            </div>
 
-          {/* Status Filter */}
-          <div className="relative">
-            <select
-              value={filterStatus}
-              onChange={(e) => {
-                setFilterStatus(e.target.value);
-                setShowSorting(false);
-              }}
-              className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
-              aria-label="Filter by status"
-            >
-              <option value="all">All Status</option>
-              <option value="yes">Leave Yes</option>
-              <option value="no">Leave No</option>
-            </select>
-          </div>
+            <div className="relative">
+              <select
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setShowSorting(false);
+                }}
+                className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
+                aria-label="Filter by status"
+              >
+                <option value="all">All Status</option>
+                <option value="yes">Leave Yes</option>
+                <option value="no">Leave No</option>
+              </select>
+            </div>
 
-          {/* Sorting Options */}
-          <div className="relative">
-            <button
-              onClick={() => setShowSorting(!showSorting)}
-              className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
-              aria-label="Toggle sorting options"
-            >
-              Sort Options
-            </button>
-            {showSorting && (
-              <div className="absolute z-10 bg-white border border-gray-300 rounded-lg mt-1 p-2">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-green-700 mb-2">Sort by:</span>
-                  {['dateOfBirth', 'motherName', 'leave'].map((key) => (
-                    <label key={key} className="flex items-center gap-1 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={sortConfig.key === key}
-                        onChange={() => handleSort(key)}
-                        className="rounded text-green-600 focus:ring-green-500"
-                        aria-label={`Sort by ${key}`}
-                      />
-                      {key.charAt(0).toUpperCase() + key.slice(1)}
-                      {sortConfig.key === key && (
-                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </label>
-                  ))}
+            <div className="relative">
+              <button
+                onClick={() => setShowSorting(!showSorting)}
+                className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
+                aria-label="Toggle sorting options"
+              >
+                Sort Options
+              </button>
+              {showSorting && (
+                <div className="absolute z-10 bg-white border border-gray-300 rounded-lg mt-1 p-2">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-green-700 mb-2">Sort by:</span>
+                    {['dateOfBirth', 'motherName', 'leave'].map((key) => (
+                      <label key={key} className="flex items-center gap-1 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={sortConfig.key === key}
+                          onChange={() => handleSort(key)}
+                          className="rounded text-green-600 focus:ring-green-500"
+                          aria-label={`Sort by ${key}`}
+                        />
+                        {key.charAt(0).toUpperCase() + key.slice(1)}
+                        {sortConfig.key === key && (
+                          <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+          </>
+        )}
 
-        {isPediatrition && (
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors w-full md:w-auto justify-center"
-            onClick={() => {
-              resetForm();
-              setIsAddModalOpen(true);
-            }}
-            disabled={isLoading}
-          >
-            <Plus size={18} />
-            New Born
-          </button>
+        {isLoading ? (
+          <div className="h-10 w-40 bg-gray-200 rounded-lg animate-pulse"></div>
+        ) : (
+          isPediatrition && (
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors w-full md:w-auto justify-center"
+              onClick={() => {
+                resetForm();
+                setIsAddModalOpen(true);
+              }}
+              disabled={isLoading}
+            >
+              <Plus size={18} />
+              New Born
+            </button>
+          )
         )}
       </div>
 
@@ -848,7 +924,12 @@ const BornPage = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedBorns.length > 0 ? (
+              {isLoading ? (
+                // Show skeleton loaders while loading
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRowSkeleton key={`skeleton-${index}`} />
+                ))
+              ) : paginatedBorns.length > 0 ? (
                 paginatedBorns.map((born) => (
                   <tr key={born.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -902,7 +983,7 @@ const BornPage = () => {
               ) : (
                 <tr>
                   <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-                    {isLoading ? 'Loading...' : 'No born records found'}
+                    No born records found
                   </td>
                 </tr>
               )}
@@ -911,46 +992,48 @@ const BornPage = () => {
         </div>
 
         {/* Pagination Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-center p-4 bg-gray-50">
-          <div className="text-sm text-gray-700 mb-2 md:mb-0">
-            Showing {(currentPage - 1) * itemsPerPage + 1} -{' '}
-            {Math.min(currentPage * itemsPerPage, sortedAndFilteredBorns.length)} of{' '}
-            {sortedAndFilteredBorns.length} records
+        {!isLoading && (
+          <div className="flex flex-col md:flex-row justify-between items-center p-4 bg-gray-50">
+            <div className="text-sm text-gray-700 mb-2 md:mb-0">
+              Showing {(currentPage - 1) * itemsPerPage + 1} -{' '}
+              {Math.min(currentPage * itemsPerPage, sortedAndFilteredBorns.length)} of{' '}
+              {sortedAndFilteredBorns.length} records
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={goToFirstPage}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                <ChevronsLeft size={18} />
+              </button>
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <span className="px-4 py-2 bg-green-100 rounded-lg">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                <ChevronRight size={18} />
+              </button>
+              <button
+                onClick={goToLastPage}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                <ChevronsRight size={18} />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={goToFirstPage}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-            >
-              <ChevronsLeft size={18} />
-            </button>
-            <button
-              onClick={goToPreviousPage}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <span className="px-4 py-2 bg-green-100 rounded-lg">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={goToNextPage}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-            >
-              <ChevronRight size={18} />
-            </button>
-            <button
-              onClick={goToLastPage}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-            >
-              <ChevronsRight size={18} />
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Add Born Record Modal */}
@@ -969,24 +1052,73 @@ const BornPage = () => {
             </div>
 
             <div className="p-6">
-              <EditForm
-                isEditMode={isEditMode}
-                formData={formData}
-                handleChange={handleChange}
-                handleBabyChange={handleBabyChange}
-                handleMedicationChange={handleMedicationChange}
-                addBaby={addBaby}
-                removeBaby={removeBaby}
-                addMedication={addMedication}
-                removeMedication={removeMedication}
-                sectors={sectors}
-                cells={cells}
-                villages={villages}
-                healthCenters={healthCenters}
-                handleSectorChange={handleSectorChange}
-                handleCellChange={handleCellChange}
-                handleVillageChange={handleVillageChange}
-              />
+              {isLoading ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
+                      <div className="space-y-4">
+                        <InputSkeleton />
+                        <InputSkeleton />
+                        <InputSkeleton />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
+                      <div className="space-y-4">
+                        <InputSkeleton />
+                        <InputSkeleton />
+                        <InputSkeleton />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <InputSkeleton />
+                      <SelectSkeleton />
+                      <SelectSkeleton />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <SelectSkeleton />
+                      <SelectSkeleton />
+                      <SelectSkeleton />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="h-5 bg-gray-200 rounded w-32"></div>
+                      <div className="h-8 w-24 bg-gray-200 rounded"></div>
+                    </div>
+                    <BabyCardSkeleton />
+                  </div>
+                </div>
+              ) : (
+                <EditForm
+                  isEditMode={isEditMode}
+                  formData={formData}
+                  handleChange={handleChange}
+                  handleBabyChange={handleBabyChange}
+                  handleMedicationChange={handleMedicationChange}
+                  addBaby={addBaby}
+                  removeBaby={removeBaby}
+                  addMedication={addMedication}
+                  removeMedication={removeMedication}
+                  sectors={sectors}
+                  cells={cells}
+                  villages={villages}
+                  healthCenters={healthCenters}
+                  handleSectorChange={handleSectorChange}
+                  handleCellChange={handleCellChange}
+                  handleVillageChange={handleVillageChange}
+                />
+              )}
             </div>
 
             <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-2">
@@ -1042,7 +1174,54 @@ const BornPage = () => {
             </div>
 
             <div className="p-6">
-              {isEditMode ? (
+              {isLoading ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
+                      <div className="bg-green-50 p-4 rounded animate-pulse">
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
+                      <div className="bg-green-50 p-4 rounded animate-pulse">
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
+                    <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
+                    <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
+                    <div className="space-y-4">
+                      <BabyCardSkeleton />
+                      <BabyCardSkeleton />
+                    </div>
+                  </div>
+                </div>
+              ) : isEditMode ? (
                 <EditForm
                   isEditMode={isEditMode}
                   formData={formData}
