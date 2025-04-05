@@ -701,9 +701,31 @@ const BornPage = () => {
     });
   };
 
-  const getNameFromId = (id, array) => {
+  const getNameFromId = (id, array, parentArray = null) => {
+    if (!id) return 'N/A';
+
+    // First try to find in direct array
     const item = array.find((item) => item.id == id);
-    return item ? item.name : id;
+    if (item) return item.name;
+
+    // If not found and parentArray is provided, search through parent's children
+    if (parentArray) {
+      for (const parent of parentArray) {
+        if (parent.cells) {
+          const foundCell = parent.cells.find((cell) => cell.id == id);
+          if (foundCell) return foundCell.name;
+
+          for (const cell of parent.cells) {
+            if (cell.villages) {
+              const foundVillage = cell.villages.find((village) => village.id == id);
+              if (foundVillage) return foundVillage.name;
+            }
+          }
+        }
+      }
+    }
+
+    return id; // Return ID as fallback
   };
 
   const formatDate = (dateString) => {
@@ -1448,11 +1470,12 @@ const ViewDetails = ({
             <span className="font-semibold">Sector:</span> {getNameFromId(born.sector_id, sectors)}
           </p>
           <p>
-            <span className="font-semibold">Cell:</span> {getNameFromId(born.cell_id, cells)}
+            <span className="font-semibold">Cell:</span>{' '}
+            {getNameFromId(born.cell_id, cells, sectors)}
           </p>
           <p>
             <span className="font-semibold">Village:</span>{' '}
-            {getNameFromId(born.village_id, villages)}
+            {getNameFromId(born.village_id, villages, sectors)}
           </p>
         </div>
       </div>

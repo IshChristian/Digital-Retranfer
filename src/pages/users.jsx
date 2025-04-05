@@ -188,9 +188,10 @@ export default function UserManagementPage() {
         phone: phone,
         role: formData.role,
         gender: formData.gender,
-        ...(formData.address && { address: formData.address }),
+        // ...(formData.address && { address: formData.address }),
         ...(formData.healthCenterId && { healthCenterId: formData.healthCenterId }),
       };
+      console.log(userData);
 
       const response = await axios.post(`${API_BASE_URL}/users/addUser`, userData, {
         headers: {
@@ -668,16 +669,7 @@ export default function UserManagementPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
+              
 
               {/* Health Center - only shown for head_of_community_workers_at_helth_center role */}
               {isHeadOfCommunityWorkers && (
@@ -788,10 +780,6 @@ export default function UserManagementPage() {
                 <p className="text-gray-800">{currentUser.gender}</p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <p className="text-gray-800">{currentUser.address || 'N/A'}</p>
-              </div>
 
               {(isHeadOfCommunityWorkers ||
                 currentUser.role === 'head_of_community_workers_at_helth_center') && (

@@ -302,10 +302,6 @@ export default function BornRecordsReport() {
                               <p>
                                 <strong>Status:</strong> {feedback.status}
                               </p>
-                              <p>
-                                <strong>Next Visit:</strong>{' '}
-                                {formatDisplayDate(feedback.nextAppointmentDate)}
-                              </p>
                             </div>
                           ))
                         : 'No appointments'}
