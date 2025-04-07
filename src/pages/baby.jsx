@@ -1897,7 +1897,7 @@ const ViewDetails = ({
 
       {/* Add visit form modal */}
       {isAddingVisit && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-green-50 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-lg font-medium mb-4">Schedule Visit</h3>
             <form onSubmit={handleVisitSubmit}>
@@ -1919,7 +1919,7 @@ const ViewDetails = ({
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">
                   Schedule
                 </button>
               </div>
