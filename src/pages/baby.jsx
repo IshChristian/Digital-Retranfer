@@ -1744,7 +1744,7 @@ const ViewDetails = ({
             </button>
           ) : (
             <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
-              <h4 className="font-semibold text-blue-800 mb-3">Add New Appointment</h4>
+              <h4 className="font-semibold text-green-800 mb-3">Add New Appointment</h4>
               <AddAppointmentForm
                 bornId={born.id}
                 babyId={born.babies?.[0]?.id}

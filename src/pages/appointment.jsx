@@ -607,20 +607,12 @@ const AppointmentPage = () => {
                             <span className="font-semibold">Mother:</span>{' '}
                             {currentAppointment.birthRecord.motherName}
                           </p>
-                          <p>
-                            <span className="font-semibold">Mother ID:</span>{' '}
-                            {currentAppointment.birthRecord.motherNationalId}
-                          </p>
                           {currentAppointment.birthRecord.fatherName && (
                             <p>
                               <span className="font-semibold">Father:</span>{' '}
                               {currentAppointment.birthRecord.fatherName}
                             </p>
                           )}
-                          <p>
-                            <span className="font-semibold">Number of Babies:</span>{' '}
-                            {currentAppointment.birthRecord.babyCount}
-                          </p>
                         </div>
                       </div>
                     )}
