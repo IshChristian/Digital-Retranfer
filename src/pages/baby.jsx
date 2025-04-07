@@ -57,11 +57,13 @@ const BornPage = () => {
     fatherPhone: '',
     babyCount: 1,
     deliveryType: 'Normal',
-    leave: 'yes',
+    leave: userRole === 'data_manager' ? 'no' : 'yes', // Default based on role
     status: 'go home',
     sector_id: '',
     cell_id: '',
     village_id: '',
+    dateofvisit: '', // Add visit date field
+    dateofDischarge: '', // Add discharge date field
     babies: [
       {
         name: '',
@@ -75,7 +77,9 @@ const BornPage = () => {
 
   const token = Cookies.get('token');
   const API_BASE_URL = import.meta.env.VITE_API_KEY;
-  const isPediatrition = userRole === 'pediatrition';
+  // Replace the role checks with this more robust version
+  const isDataManager = userRole === 'data_manager';
+  const isPediatrition = userRole === 'doctor';
 
   const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
@@ -84,6 +88,8 @@ const BornPage = () => {
       Authorization: token ? `Bearer ${token}` : '',
     },
   });
+
+  const displayValue = (value) => value || 'N/A';
 
   // Memoized sorted and filtered data
   const sortedAndFilteredBorns = useMemo(() => {
@@ -1286,6 +1292,8 @@ const BornPage = () => {
                   axiosInstance={axiosInstance}
                   isPediatrition={isPediatrition}
                   onAddAppointment={handleAddAppointment}
+                  userRole={userRole}
+                  displayValue={displayValue}
                 />
               )}
             </div>
@@ -1391,11 +1399,76 @@ const ViewDetails = ({
   axiosInstance,
   isPediatrition,
   onAddAppointment,
+  userRole,
+  displayValue,
 }) => {
   const [addingAppointmentForBaby, setAddingAppointmentForBaby] = useState(null);
   const [isAddingBaby, setIsAddingBaby] = useState(false);
   const [isAddingAppointment, setIsAddingAppointment] = useState(false);
   const [editingBaby, setEditingBaby] = useState(null);
+  const [isAddingVisit, setIsAddingVisit] = useState(false);
+  const [visitDate, setVisitDate] = useState('');
+  const [isAddingDischarge, setIsAddingDischarge] = useState(false);
+  const [leaveStatus, setLeaveStatus] = useState('yes');
+  const [showDischargeForm, setShowDischargeForm] = useState(false);
+  const [dischargeDate, setDischargeDate] = useState(born?.dateofDischarge || '');
+
+  // Add these handler functions
+  const handleVisitSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      // Update the born record with visit date
+      await updateBorn();
+      setIsAddingVisit(false);
+      showAlert('success', 'Visit scheduled successfully');
+    } catch (error) {
+      showAlert('error', error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDischargeSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      const data = {
+        dateofDischarge: dischargeDate,
+        healthCenterId: born.healthCenterId,
+        leave: 'yes',
+      };
+      console.log(data);
+      // Make sure the endpoint matches your backend API
+      const response = await axiosInstance.put(`/borns/${born.id}`, {
+        data,
+      });
+
+      if (response.status === 200) {
+        setCurrentBorn((prev) => ({
+          ...prev,
+          dateofDischarge: dischargeDate,
+          leave: 'yes',
+        }));
+        setShowDischargeForm(false);
+        Swal.fire({
+          icon: 'success',
+          title: 'Discharge date updated successfully',
+          showConfirmButton: false,
+          timer: 1500,
+        });
+      }
+    } catch (error) {
+      console.error('Discharge error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed to update discharge date',
+        text: error.response?.data?.message || error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleEditBaby = (baby) => {
     setEditingBaby(baby);
@@ -1588,11 +1661,11 @@ const ViewDetails = ({
                     </div>
                     <div>
                       <p className="font-semibold">
-                        Birth Weight: <span className="font-normal">{baby.birthWeight} kg</span>
+                        Birth Weight: <span className="font-normal">{baby.birthWeight} g</span>
                       </p>
                       <p className="font-semibold">
                         Discharge Weight:{' '}
-                        <span className="font-normal">{baby.dischargebirthWeight} kg</span>
+                        <span className="font-normal">{baby.dischargebirthWeight} g</span>
                       </p>
                     </div>
                   </div>
@@ -1647,8 +1720,7 @@ const ViewDetails = ({
                               <h5 className="font-semibold">Feedback:</h5>
                               <div className="bg-blue-50 p-2 rounded">
                                 <p>
-                                  <span className="font-semibold">Weight:</span> {feedback.weight}{' '}
-                                  kg
+                                  <span className="font-semibold">Weight:</span> {feedback.weight} g
                                 </p>
                                 <p>
                                   <span className="font-semibold">Status:</span> {feedback.status}
@@ -1671,6 +1743,129 @@ const ViewDetails = ({
           ))}
         </div>
       </div>
+      {/* Add discharge and visit information section */}
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Medical Information</h3>
+        <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-2 gap-4">
+          <p>
+            <span className="font-semibold">Discharge Date:</span>{' '}
+            {displayValue(born.dateofDischarge)}
+          </p>
+          <p>
+            <span className="font-semibold">Visit Date:</span> {displayValue(born.dateofvisit)}
+          </p>
+          <p>
+            <span className="font-semibold">Leave Status:</span> {displayValue(born.leave)}
+          </p>
+          <p>
+            <span className="font-semibold">Status:</span> {displayValue(born.status)}
+          </p>
+        </div>
+      </div>
+
+      {/* Add role-specific action buttons */}
+      <div className="flex gap-4">
+        {userRole === 'data_manager' && (
+          <button
+            onClick={() => setIsAddingVisit(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Schedule Visit
+          </button>
+        )}
+
+        {userRole === 'pediatrition' && (
+          <button
+            onClick={() => setIsAddingDischarge(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+          >
+            Record Discharge
+          </button>
+        )}
+      </div>
+
+      {/* Add visit form modal */}
+      {isAddingVisit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h3 className="text-lg font-medium mb-4">Schedule Visit</h3>
+            <form onSubmit={handleVisitSubmit}>
+              <div className="mb-4">
+                <label className="block mb-2">Visit Date</label>
+                <input
+                  type="date"
+                  className="w-full p-2 border rounded"
+                  value={visitDate}
+                  onChange={(e) => setVisitDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingVisit(false)}
+                  className="px-4 py-2 border rounded"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
+                  Schedule
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add discharge form modal */}
+      {/* Add Discharge button (visible only to doctors) */}
+      {isPediatrition && (
+        <div className="mt-4">
+          {!showDischargeForm ? (
+            <button
+              onClick={() => setShowDischargeForm(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Record Discharge
+            </button>
+          ) : (
+            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mt-2">
+              <h4 className="font-semibold text-blue-800 mb-3">Record Discharge</h4>
+              <form onSubmit={handleDischargeSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Discharge Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={dischargeDate}
+                    onChange={(e) => setDischargeDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDischargeForm(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Updating...' : 'Save Discharge'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h3 className="text-lg font-medium text-green-700 mb-3">Recorded By</h3>
@@ -1774,9 +1969,7 @@ const EditBabyForm = ({ baby, onUpdate, onCancel, isLoading }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Birth Weight (kg) *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Birth Weight (g) *</label>
           <input
             type="number"
             step="0.1"
@@ -1790,7 +1983,7 @@ const EditBabyForm = ({ baby, onUpdate, onCancel, isLoading }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Discharge Weight (kg)
+            Discharge Weight (g)
           </label>
           <input
             type="number"
@@ -1912,6 +2105,7 @@ const EditForm = ({
   handleSectorChange,
   handleCellChange,
   handleVillageChange,
+  userRole,
 }) => {
   return (
     <div className="space-y-6">
@@ -1945,19 +2139,6 @@ const EditForm = ({
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mother's National ID *
-              </label>
-              <input
-                type="text"
-                name="motherNationalId"
-                value={formData.motherNationalId}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              />
-            </div>
           </div>
         </div>
 
@@ -1980,18 +2161,6 @@ const EditForm = ({
                 type="text"
                 name="fatherPhone"
                 value={formData.fatherPhone}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Father's National ID
-              </label>
-              <input
-                type="text"
-                name="fatherNationalId"
-                value={formData.fatherNationalId}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
               />
@@ -2042,19 +2211,6 @@ const EditForm = ({
                   {hc.name}
                 </option>
               ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Leave Status *</label>
-            <select
-              name="leave"
-              value={formData.leave}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              required
-            >
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
             </select>
           </div>
           <div className="hidden">
@@ -2188,7 +2344,7 @@ const EditForm = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Birth Weight (kg) *
+                    Birth Weight (g) *
                   </label>
                   <input
                     type="number"
@@ -2202,7 +2358,7 @@ const EditForm = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Discharge Weight (kg) *
+                    Discharge Weight (g) *
                   </label>
                   <input
                     type="number"
@@ -2286,6 +2442,61 @@ const EditForm = ({
                   <p className="text-gray-500">No medications recorded</p>
                 )}
               </div>
+              {/* Add role-specific fields */}
+              {userRole === 'data_manager' && (
+                <div>
+                  <h3 className="text-lg font-medium text-green-700 mb-3">Visit Information</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Visit Date
+                      </label>
+                      <input
+                        type="date"
+                        name="dateofvisit"
+                        value={formData.dateofvisit}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {userRole === 'pediatrition' && (
+                <div>
+                  <h3 className="text-lg font-medium text-green-700 mb-3">Discharge Information</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Discharge Date
+                      </label>
+                      <input
+                        type="date"
+                        name="dateofDischarge"
+                        value={formData.dateofDischarge}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Leave Status
+                      </label>
+                      <select
+                        name="leave"
+                        value={formData.leave}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        required
+                      >
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -2365,7 +2576,7 @@ const AddBabyModal = ({ isOpen, onClose, bornId, onAddBaby, axiosInstance }) => 
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Birth Weight (kg) *
+              Birth Weight (g) *
             </label>
             <input
               type="number"
@@ -2380,7 +2591,7 @@ const AddBabyModal = ({ isOpen, onClose, bornId, onAddBaby, axiosInstance }) => 
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Discharge Weight (kg)
+              Discharge Weight (g)
             </label>
             <input
               type="number"
@@ -2493,9 +2704,7 @@ const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Birth Weight (kg) *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Birth Weight (g) *</label>
           <input
             type="number"
             step="0.01"
@@ -2510,7 +2719,7 @@ const AddBabyForm = ({ bornId, onAddBaby, onCancel }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Discharge Weight (kg)
+            Discharge Weight (g)
           </label>
           <input
             type="number"
