@@ -297,8 +297,8 @@ export default function HealthCenterManagement() {
       head_of_community_workers_at_helth_center: roles.includes(
         'head_of_community_workers_at_helth_center'
       ),
-      pediatrition: roles.includes('pediatrition'),
-      admin: roles.includes('admin'),
+      pediatrition: roles.includes('doctor'),
+      admin: roles.includes('data_manager'),
     };
 
     setFormData({

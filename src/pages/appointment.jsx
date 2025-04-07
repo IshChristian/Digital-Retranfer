@@ -29,7 +29,7 @@ const AppointmentPage = () => {
   // API configuration
   const API_BASE_URL = import.meta.env.VITE_API_KEY;
   const token = Cookies.get('token');
-  const isPediatrition = userRole === 'pediatrition';
+  const isPediatrition = userRole === 'doctor';
 
   const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
@@ -239,6 +239,19 @@ const AppointmentPage = () => {
     }
   };
 
+  const formatDateToDMY = (dateString) => {
+    if (!dateString) return 'N/A';
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  };
+
   // Skeleton Loader Components
   const TableRowSkeleton = () => (
     <tr className="animate-pulse">
@@ -401,7 +414,7 @@ const AppointmentPage = () => {
                   <tr key={appointment.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {formatDate(appointment.date)}
+                        {formatDateToDMY(appointment.date)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -561,7 +574,7 @@ const AppointmentPage = () => {
                       <div className="space-y-2">
                         <p>
                           <span className="font-semibold">Date:</span>{' '}
-                          {formatDate(currentAppointment.date)}
+                          {formatDateToDMY(currentAppointment.date)}
                         </p>
                         <p>
                           <span className="font-semibold">Purpose:</span>{' '}
@@ -649,7 +662,7 @@ const AppointmentPage = () => {
                                 {currentAppointment.birthRecord.babies.map((baby) => (
                                   <option key={baby.id} value={baby.id}>
                                     {baby.name || `Baby ${baby.id}`} ({baby.gender}) -{' '}
-                                    {baby.birthWeight}kg
+                                    {baby.birthWeight}g
                                   </option>
                                 ))}
                               </select>
@@ -658,7 +671,7 @@ const AppointmentPage = () => {
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Weight (kg) *
+                              Weight (g) *
                             </label>
                             <input
                               type="number"
@@ -745,7 +758,7 @@ const AppointmentPage = () => {
                                 {feedback.baby?.name || `Baby ${feedback.baby?.id}`}
                               </p>
                               <p>
-                                <span className="font-semibold">Weight:</span> {feedback.weight} kg
+                                <span className="font-semibold">Weight:</span> {feedback.weight} g
                               </p>
                               <p>
                                 <span className="font-semibold">Status:</span> {feedback.status}

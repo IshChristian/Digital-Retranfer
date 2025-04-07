@@ -94,6 +94,19 @@ export default function BornRecordsReport() {
     fetchBornRecords();
   }, []);
 
+  const formatDateToDMY = (dateString) => {
+    if (!dateString) return 'N/A';
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  };
+
   // Skeleton Loader Components
   const SummaryCardSkeleton = () => (
     <div className="bg-gray-100 p-4 rounded-lg shadow animate-pulse">
@@ -262,7 +275,7 @@ export default function BornRecordsReport() {
                 currentRecords.map((record) => (
                   <tr key={record.bornId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDisplayDate(record.dateOfBirth)}
+                      {formatDateToDMY(record.dateOfBirth)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {record.healthCenter}
@@ -297,7 +310,7 @@ export default function BornRecordsReport() {
                             <div key={idx}>
                               <p>
                                 <strong>Date:</strong>{' '}
-                                {formatDisplayDate(record.appointments[0].appointmentDate)}
+                                {formatDateToDMY(record.appointments[0].appointmentDate)}
                               </p>
                               <p>
                                 <strong>Status:</strong> {feedback.status}

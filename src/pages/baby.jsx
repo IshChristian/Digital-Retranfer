@@ -738,6 +738,20 @@ const BornPage = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Add this with your other utility functions
+  const formatDateToDMY = (dateString) => {
+    if (!dateString) return 'N/A';
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  };
+
   // Pagination handlers
   const goToFirstPage = () => setCurrentPage(1);
   const goToLastPage = () => setCurrentPage(totalPages);
@@ -961,7 +975,9 @@ const BornPage = () => {
                 paginatedBorns.map((born) => (
                   <tr key={born.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatDate(born.dateOfBirth)}</div>
+                      <div className="text-sm text-gray-900">
+                        {formatDateToDMY(born.dateOfBirth)}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{born.motherName}</div>
@@ -1294,6 +1310,8 @@ const BornPage = () => {
                   onAddAppointment={handleAddAppointment}
                   userRole={userRole}
                   displayValue={displayValue}
+                  showAlert={showAlert}
+                  formatDateToDMY={formatDateToDMY}
                 />
               )}
             </div>
@@ -1401,6 +1419,9 @@ const ViewDetails = ({
   onAddAppointment,
   userRole,
   displayValue,
+  showAlert,
+  setCurrentBorn,
+  formatDateToDMY,
 }) => {
   const [addingAppointmentForBaby, setAddingAppointmentForBaby] = useState(null);
   const [isAddingBaby, setIsAddingBaby] = useState(false);
@@ -1418,12 +1439,43 @@ const ViewDetails = ({
     e.preventDefault();
     try {
       setIsLoading(true);
-      // Update the born record with visit date
-      await updateBorn();
-      setIsAddingVisit(false);
-      showAlert('success', 'Visit scheduled successfully');
+
+      // Prepare the data to send
+      const dataToSend = {
+        healthCenterId: born.healthCenterId, // Changed from currentBorn to born
+        dateofvisit: visitDate,
+      };
+
+      // Make the API call using the born prop
+      const response = await axiosInstance.put(`/borns/${born.id}`, dataToSend);
+
+      if (response.status === 200) {
+        // Update local state through the setCurrentBorn prop
+        setCurrentBorn((prev) => ({
+          ...prev,
+          dateofvisit: visitDate,
+        }));
+
+        // Show success message
+        Swal.fire({
+          icon: 'success',
+          title: 'Visit scheduled successfully',
+          showConfirmButton: false,
+          timer: 1500,
+        });
+
+        // Close the form
+        setIsAddingVisit(false);
+      }
     } catch (error) {
-      showAlert('error', error.message);
+      console.error('Error scheduling visit:', error);
+
+      // Show error message
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed to schedule visit',
+        text: error.response?.data?.message || 'Please try again later',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -1433,37 +1485,39 @@ const ViewDetails = ({
     e.preventDefault();
     try {
       setIsLoading(true);
-      const data = {
+
+      // Use the born prop instead of currentBorn
+      const dataToSend = {
         dateofDischarge: dischargeDate,
-        healthCenterId: born.healthCenterId,
+        healthCenterId: born.healthCenterId, // Changed from currentBorn to born
         leave: 'yes',
       };
-      console.log(data);
-      // Make sure the endpoint matches your backend API
-      const response = await axiosInstance.put(`/borns/${born.id}`, {
-        data,
-      });
+
+      const response = await axiosInstance.put(`/borns/${born.id}`, dataToSend); // Changed here too
 
       if (response.status === 200) {
+        // Update local state through the setCurrentBorn prop
         setCurrentBorn((prev) => ({
           ...prev,
           dateofDischarge: dischargeDate,
           leave: 'yes',
         }));
-        setShowDischargeForm(false);
+
         Swal.fire({
           icon: 'success',
-          title: 'Discharge date updated successfully',
+          title: 'Discharge recorded successfully',
           showConfirmButton: false,
           timer: 1500,
         });
+
+        setShowDischargeForm(false);
       }
     } catch (error) {
-      console.error('Discharge error:', error);
+      console.error('Error recording discharge:', error);
       Swal.fire({
         icon: 'error',
-        title: 'Failed to update discharge date',
-        text: error.response?.data?.message || error.message,
+        title: 'Failed to record discharge',
+        text: error.response?.data?.message || 'Please try again later',
       });
     } finally {
       setIsLoading(false);
@@ -1494,9 +1548,6 @@ const ViewDetails = ({
             <p className="mb-2">
               <span className="font-semibold">Phone:</span> {born.motherPhone}
             </p>
-            <p className="mb-2">
-              <span className="font-semibold">National ID:</span> {born.motherNationalId}
-            </p>
           </div>
         </div>
 
@@ -1509,19 +1560,112 @@ const ViewDetails = ({
             <p className="mb-2">
               <span className="font-semibold">Phone:</span> {born.fatherPhone}
             </p>
-            <p className="mb-2">
-              <span className="font-semibold">National ID:</span> {born.fatherNationalId}
-            </p>
           </div>
         </div>
       </div>
+
+      {/* Visit Section - Now inline instead of modal */}
+      {userRole === 'data_manager' && (
+        <>
+          {!isAddingVisit ? (
+            <button
+              onClick={() => setIsAddingVisit(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              Schedule Visit
+            </button>
+          ) : (
+            <div className="md:col-span-2 bg-white p-4 rounded-lg shadow-md border border-gray-200">
+              <h4 className="font-semibold text-green-800 mb-3">Schedule Visit</h4>
+              <form onSubmit={handleVisitSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Visit Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={visitDate}
+                    onChange={(e) => setVisitDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingVisit(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Saving...' : 'Save Visit'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Add Discharge button (visible only to doctors) */}
+      {isPediatrition && (
+        <div className="mt-4">
+          {!showDischargeForm ? (
+            <button
+              onClick={() => setShowDischargeForm(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              + Record Discharge
+            </button>
+          ) : (
+            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mt-2">
+              <h4 className="font-semibold text-green-800 mb-3">Record Discharge</h4>
+              <form onSubmit={handleDischargeSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Discharge Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={dischargeDate}
+                    onChange={(e) => setDischargeDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDischargeForm(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-blue-700"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Updating...' : 'Save Discharge'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
         <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
           <p>
             <span className="font-semibold">Date of Birth:</span>{' '}
-            {new Date(born.dateOfBirth).toLocaleDateString()}
+            {formatDateToDMY(born.dateOfBirth)}
           </p>
           <p>
             <span className="font-semibold">Delivery Type:</span> {born.deliveryType}
@@ -1531,7 +1675,14 @@ const ViewDetails = ({
             {getNameFromId(born.healthCenterId, healthCenters)}
           </p>
           <p>
-            <span className="font-semibold">Leave Status:</span> {born.leave}
+            <span className="font-semibold">Discharge Date:</span>
+            {formatDateToDMY(born.dateofDischarge)}
+          </p>
+          <p>
+            <span className="font-semibold">Leave Status:</span> {displayValue(born.leave)}
+          </p>
+          <p>
+            <span className="font-semibold">Visit Date:</span> {formatDateToDMY(born.dateofvisit)}
           </p>
         </div>
       </div>
@@ -1559,7 +1710,7 @@ const ViewDetails = ({
           {!isAddingBaby ? (
             <button
               onClick={() => setIsAddingBaby(true)}
-              className="flex items-center gap-2 text-green-600 hover:text-green-800"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
               <Plus size={18} />
               Add New Baby
@@ -1586,7 +1737,7 @@ const ViewDetails = ({
           {!isAddingAppointment ? (
             <button
               onClick={() => setIsAddingAppointment(true)}
-              className="flex items-center gap-2 text-green-600 hover:text-green-800"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
               <Plus size={18} />
               Add New Appointment
@@ -1743,46 +1894,6 @@ const ViewDetails = ({
           ))}
         </div>
       </div>
-      {/* Add discharge and visit information section */}
-      <div>
-        <h3 className="text-lg font-medium text-green-700 mb-3">Medical Information</h3>
-        <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-2 gap-4">
-          <p>
-            <span className="font-semibold">Discharge Date:</span>{' '}
-            {displayValue(born.dateofDischarge)}
-          </p>
-          <p>
-            <span className="font-semibold">Visit Date:</span> {displayValue(born.dateofvisit)}
-          </p>
-          <p>
-            <span className="font-semibold">Leave Status:</span> {displayValue(born.leave)}
-          </p>
-          <p>
-            <span className="font-semibold">Status:</span> {displayValue(born.status)}
-          </p>
-        </div>
-      </div>
-
-      {/* Add role-specific action buttons */}
-      <div className="flex gap-4">
-        {userRole === 'data_manager' && (
-          <button
-            onClick={() => setIsAddingVisit(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Schedule Visit
-          </button>
-        )}
-
-        {userRole === 'pediatrition' && (
-          <button
-            onClick={() => setIsAddingDischarge(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-          >
-            Record Discharge
-          </button>
-        )}
-      </div>
 
       {/* Add visit form modal */}
       {isAddingVisit && (
@@ -1818,53 +1929,6 @@ const ViewDetails = ({
       )}
 
       {/* Add discharge form modal */}
-      {/* Add Discharge button (visible only to doctors) */}
-      {isPediatrition && (
-        <div className="mt-4">
-          {!showDischargeForm ? (
-            <button
-              onClick={() => setShowDischargeForm(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Record Discharge
-            </button>
-          ) : (
-            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mt-2">
-              <h4 className="font-semibold text-blue-800 mb-3">Record Discharge</h4>
-              <form onSubmit={handleDischargeSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Discharge Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={dischargeDate}
-                    onChange={(e) => setDischargeDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDischargeForm(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Updating...' : 'Save Discharge'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>

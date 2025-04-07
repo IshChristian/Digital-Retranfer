@@ -52,7 +52,7 @@ const Dashboard = () => {
   const COLORS = ['#2ecc71', '#27ae60', '#16a085', '#1abc9c', '#3498db'];
 
   // Check if user is pediatrician
-  const isPediatrician = userRole === 'pediatrition';
+  const isPediatrician = userRole === 'doctor';
 
   // Format role names for display
   const formatRoleName = (role) => {
