@@ -59,6 +59,7 @@ const [rejectReason, setRejectReason] = useState('');
   fatherPhone: '',
   babyCount: 1,
   deliveryType: 'Normal',
+  delivery_place: 'Home',
   leave: 'no',
   status: 'pending',
   sector_id: '',
@@ -279,7 +280,7 @@ const [rejectReason, setRejectReason] = useState('');
     // Step 1: Create the born record
     const response = await axiosInstance.post('/borns', {
       ...formData,
-      delivery_place: formData.delivery_place,
+      delivery_place: formData.delivery_place, // Ensure this is included
       dateofvisit: formData.dateofvisit,
       dateofDischarge: formData.dateofDischarge,
       leave: formData.leave,
@@ -290,36 +291,41 @@ const [rejectReason, setRejectReason] = useState('');
       })),
     });
 
-    if (response.status === 201) {
-      const createdBorn = response.data;
+    console.log('Response from /borns API:', response.data); // Debug log
 
-      // Step 2: Post an appointment for the created born record
-      if (formData.dateofvisit) {
-        const appointmentData = {
-          bornId: createdBorn.id,
-          date: formData.dateofvisit,
-          time: formData.appointmentTime || '09:00', // Default to 09:00 if missing
-          purpose: formData.purpose || 'Initial Visit', // Default to "Initial Visit" if missing
-          status: 'Scheduled',
-        };
-
-        console.log('Posting appointment data:', appointmentData);
-
-        const appointmentResponse = await axiosInstance.post('/appointments', appointmentData);
-
-        if (appointmentResponse.status === 201) {
-          console.log('Appointment created successfully:', appointmentResponse.data);
-        } else {
-          console.error('Failed to create appointment:', appointmentResponse);
-        }
-      }
-
-      // Step 3: Refresh the born records and reset the form
-      await fetchBorns();
-      setIsAddModalOpen(false);
-      resetForm();
-      showAlert('success', 'Born record and appointment added successfully');
+    // Fix: Get bornId from newBorn object in the response
+    const bornId = response.data?.newBorn?.id;
+    if (!bornId) {
+      console.error('Failed to retrieve bornId from the response:', response.data);
+      throw new Error('Failed to retrieve bornId from the response');
     }
+
+    // Step 2: Post an appointment for the created born record
+    if (formData.dateofvisit) {
+      const appointmentData = {
+        bornId, // Use the retrieved bornId
+        date: formData.dateofvisit,
+        time: formData.appointmentTime || '09:00', // Default to 09:00 if missing
+        purpose: formData.purpose || 'Initial Visit', // Default to "Initial Visit" if missing
+        status: 'Scheduled',
+      };
+
+      console.log('Posting appointment data:', appointmentData);
+
+      const appointmentResponse = await axiosInstance.post('/appointments', appointmentData);
+
+      if (appointmentResponse.status === 201) {
+        console.log('Appointment created successfully:', appointmentResponse.data);
+      } else {
+        console.error('Failed to create appointment:', appointmentResponse);
+      }
+    }
+
+    // Step 3: Refresh the born records and reset the form
+    await fetchBorns();
+    setIsAddModalOpen(false);
+    resetForm();
+    showAlert('success', 'Born record and appointment added successfully');
   } catch (err) {
     console.error('Error creating born record:', err);
     showAlert(
@@ -935,21 +941,7 @@ const handleRejectSubmit = async (e) => {
               <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
             </div>
 
-            <div className="relative">
-              <select
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setShowSorting(false);
-                }}
-                className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out"
-                aria-label="Filter by status"
-              >
-                <option value="all">All Status</option>
-                <option value="yes">Leave Yes</option>
-                <option value="no">Leave No</option>
-              </select>
-            </div>
+           
 
             <div className="relative">
               <button
@@ -1729,20 +1721,9 @@ const ViewDetails = ({
           <p>
             <span className="font-semibold">Discharge Date:</span> {formatDateToDMY(born.dateofvisit)}
           </p>
-          {userRole === 'data_manager' || userRole === 'head_of_community_workers_at_helth_center' && (
-              <p>
-                <span className="font-semibold">Visit Date:</span>{' '}
-                {formatDateToDMY(born.dateofvisit) || "N/A"}
-              </p>
-            )}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-medium text-green-700 mb-3">Location</h3>
-        <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
           <p>
-            <span className="font-semibold">Sector:</span> {getNameFromId(born.sector_id, sectors)}
+            <span className="font-semibold">Sector:</span> {' '} 
+            {getNameFromId(born.sector_id, sectors)}
           </p>
           <p>
             <span className="font-semibold">Cell:</span>{' '}
@@ -1752,6 +1733,12 @@ const ViewDetails = ({
             <span className="font-semibold">Village:</span>{' '}
             {getNameFromId(born.village_id, villages, sectors)}
           </p>
+          {userRole === 'data_manager' || userRole === 'head_of_community_workers_at_helth_center' && (
+              <p>
+                <span className="font-semibold">Visit Date:</span>{' '}
+                {formatDateToDMY(born.dateofvisit) || "N/A"}
+              </p>
+            )}
         </div>
       </div>
 
@@ -1981,7 +1968,6 @@ const ViewDetails = ({
           </div>
         </div>
       </div>
-      {/* Buttons for Prove and Reject */}
         
         {/* Buttons for Approve and Reject */}
 {born.status === 'pending' ? (
@@ -2001,8 +1987,8 @@ const ViewDetails = ({
       </button>
     </div>
   ) : (
-    userRole === 'data_manager' && (
-      <div className="mt-4 bg-gray-50 p-4 rounded-lg">
+    userRole === 'data_manager' || userRole === 'doctor' && (
+      <div className="mt-4 bg-yellow-50 p-4 rounded-lg">
         <p>
           <span className="font-semibold">Status:</span>{' '}
           <span
@@ -2445,19 +2431,20 @@ const EditForm = ({
             </select>
           </div>
           <div>
-            <label className="text-sm block font-medium text-gray-700 mb-1">Place of Birth *</label>
-            <select
-              name="status"
-              value={formData.delivery_place}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              required
-            >
-              <option value="home">Home</option>
-              <option value="referred">Referred</option>
-              <option value="hospitalized">Hospitalized</option>
-            </select>
-          </div>
+  <label className="text-sm block font-medium text-gray-700 mb-1">Place of Birth *</label>
+  <select
+    name="delivery_place"
+    value={formData.delivery_place}
+    onChange={handleChange}
+    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+    required
+  >
+    <option value="">Select Place of Birth</option>
+    <option value="home">Home</option>
+    <option value="referred">Referred</option>
+    <option value="hospitalized">Hospitalized</option>
+  </select>
+</div>
             
         </div>
       </div>
