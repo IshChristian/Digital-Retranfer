@@ -107,7 +107,7 @@ const AppointmentPage = () => {
     if (searchTerm.trim()) {
       filtered = filtered.filter((appointment) => {
         const matchesAppointment =
-          appointment.purpose?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          appointment.fatherName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           appointment.status?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesPatient =
@@ -380,11 +380,10 @@ const AppointmentPage = () => {
                 </th>
                 <th
                   className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('purpose')}
+                  onClick={() => requestSort('fatherName')}
                 >
                   <div className="flex items-center">
-                    Purpose
-                    {getSortIcon('purpose')}
+                    Father
                   </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">
@@ -419,7 +418,9 @@ const AppointmentPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{appointment.purpose}</div>
+                      <div className="text-sm text-gray-900">
+                        {appointment.birthRecord?.fatherName || 'Not specified'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
@@ -576,10 +577,6 @@ const AppointmentPage = () => {
                         <p>
                           <span className="font-semibold">Date:</span>{' '}
                           {formatDateToDMY(currentAppointment.date)}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Purpose:</span>{' '}
-                          {currentAppointment.purpose}
                         </p>
                         <p>
                           <span className="font-semibold">Status:</span>{' '}

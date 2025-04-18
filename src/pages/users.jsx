@@ -84,20 +84,21 @@ export default function UserManagementPage() {
   }, [filteredUsers, currentPage, usersPerPage]);
 
   const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(response.data.users || []);
-      setFilteredUsers(response.data.users || []);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      showAlert('error', error.response?.data?.message || 'Failed to load users');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  try {
+    setIsLoading(true);
+    const response = await axios.get(`${API_BASE_URL}/users`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log('API Response:', response.data);
+    setUsers(response.data.allUsers || []);
+    setFilteredUsers(response.data.allUsers || []);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    showAlert('error', error.response?.data?.message || 'Failed to load users');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const fetchHealthCenters = async () => {
     try {

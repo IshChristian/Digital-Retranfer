@@ -87,7 +87,7 @@ const NotificationsPage = () => {
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (err) {
-      showAlert('error', err.response?.data?.message || err.message);
+      console.log('error', err.response?.data?.message || err.message);
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +108,7 @@ const NotificationsPage = () => {
       setIsModalOpen(true);
       await fetchNotifications(); // Refresh to update read status
     } catch (err) {
-      showAlert('error', err.response?.data?.message || err.message);
+      console.log('error', err.response?.data?.message || err.message);
     }
   };
 

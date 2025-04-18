@@ -49,33 +49,35 @@ const BornPage = () => {
 const [rejectReason, setRejectReason] = useState('');
 
   const [formData, setFormData] = useState({
-    dateOfBirth: new Date().toISOString().split('T')[0],
-    healthCenterId: '',
-    motherName: '',
-    motherPhone: '',
-    motherNationalId: '',
-    fatherNationalId: '',
-    fatherName: '',
-    fatherPhone: '',
-    babyCount: 1,
-    deliveryType: 'Normal',
-    leave: 'no', // Default based on role
-    status: 'go home',
-    sector_id: '',
-    cell_id: '',
-    village_id: '',
-    dateofvisit: '', // Add visit date field
-    dateofDischarge: '', // Add discharge date field
-    babies: [
-      {
-        name: '',
-        gender: 'Male',
-        birthWeight: 0,
-        dischargebirthWeight: 0,
-        medications: [],
-      },
-    ],
-  });
+  dateOfBirth: new Date().toISOString().split('T')[0],
+  healthCenterId: '',
+  motherName: '',
+  motherPhone: '',
+  motherNationalId: '',
+  fatherNationalId: '',
+  fatherName: '',
+  fatherPhone: '',
+  babyCount: 1,
+  deliveryType: 'Normal',
+  leave: 'no',
+  status: 'pending',
+  sector_id: '',
+  cell_id: '',
+  village_id: '',
+  dateofvisit: '',
+  dateofDischarge: '',
+  appointmentTime: '09:00', // Default value
+  purpose: 'Initial Visit', // Default value
+  babies: [
+    {
+      name: '',
+      gender: 'Male',
+      birthWeight: 0,
+      dischargebirthWeight: 0,
+      medications: [],
+    },
+  ],
+});
 
   const token = Cookies.get('token');
   const API_BASE_URL = import.meta.env.VITE_API_KEY;
@@ -277,14 +279,14 @@ const [rejectReason, setRejectReason] = useState('');
     // Step 1: Create the born record
     const response = await axiosInstance.post('/borns', {
       ...formData,
-      delivery_place: formData.delivery_place, // Add delivery_place
-      dateofvisit: formData.dateofvisit, // Add visit date
-      dateofDischarge: formData.dateofDischarge, // Add discharge date
-      leave: formData.leave, // Add leave status
+      delivery_place: formData.delivery_place,
+      dateofvisit: formData.dateofvisit,
+      dateofDischarge: formData.dateofDischarge,
+      leave: formData.leave,
       status: 'pending',
       babies: formData.babies.map((baby) => ({
         ...baby,
-        medications: baby.medications || [], // Ensure medications are included
+        medications: baby.medications || [],
       })),
     });
 
@@ -292,17 +294,25 @@ const [rejectReason, setRejectReason] = useState('');
       const createdBorn = response.data;
 
       // Step 2: Post an appointment for the created born record
-      // if (formData.dateofvisit) {
-      //   const appointmentData = {
-      //     bornId: createdBorn.id,
-      //     date: formData.dateofvisit,
-      //     time: formData.appointmentTime || '09:00', // Default time if not provided
-      //     purpose: formData.purpose || 'Initial Visit', // Ensure this is not empty
-      //     status: 'Scheduled'
-      //   };
+      if (formData.dateofvisit) {
+        const appointmentData = {
+          bornId: createdBorn.id,
+          date: formData.dateofvisit,
+          time: formData.appointmentTime || '09:00', // Default to 09:00 if missing
+          purpose: formData.purpose || 'Initial Visit', // Default to "Initial Visit" if missing
+          status: 'Scheduled',
+        };
 
-      //   await axiosInstance.post('/appointments', appointmentData);
-      // }
+        console.log('Posting appointment data:', appointmentData);
+
+        const appointmentResponse = await axiosInstance.post('/appointments', appointmentData);
+
+        if (appointmentResponse.status === 201) {
+          console.log('Appointment created successfully:', appointmentResponse.data);
+        } else {
+          console.error('Failed to create appointment:', appointmentResponse);
+        }
+      }
 
       // Step 3: Refresh the born records and reset the form
       await fetchBorns();
@@ -524,47 +534,46 @@ const [rejectReason, setRejectReason] = useState('');
   };
 
   const handleAddBaby = async (newBaby) => {
-    try {
-      setIsLoading(true);
-      const babyData = {
-        bornId: newBaby.bornId,
-        name: newBaby.name,
-        gender: newBaby.gender,
-        birthWeight: parseFloat(newBaby.birthWeight),
-        dischargebirthWeight: parseFloat(newBaby.dischargebirthWeight),
-        medications: newBaby.medications || [],
-      };
+  try {
+    setIsLoading(true);
 
-      const response = await axiosInstance.post('/babies', babyData);
-
-      setCurrentBorn((prev) => ({
-        ...prev,
-        babies: [...prev.babies, response.data],
-        babyCount: prev.babyCount + 1,
-      }));
-
-      setTimeout(() => {
-        Swal.fire({
-          icon: 'success',
-          title: 'Baby added successfully!',
-          showConfirmButton: false,
-          timer: 1500,
-        });
-      }, 300);
-
-      setIsViewModalOpen(false);
-    } catch (error) {
-      console.error('Error adding baby:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Failed to add baby',
-        text: error.response?.data?.message || 'Please try again',
-      });
-      throw error;
-    } finally {
-      setIsLoading(false);
+    if (!newBaby.name.trim()) {
+      throw new Error('Baby name is required');
     }
-  };
+
+    const babyData = {
+      ...newBaby,
+      birthWeight: parseFloat(newBaby.birthWeight) || 0,
+      dischargebirthWeight: parseFloat(newBaby.dischargebirthWeight) || 0,
+    };
+
+    const response = await axiosInstance.post('/babies', babyData);
+
+    setCurrentBorn((prev) => ({
+      ...prev,
+      babies: [...prev.babies, response.data],
+      babyCount: prev.babyCount + 1,
+    }));
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Baby added successfully!',
+      showConfirmButton: false,
+      timer: 1500,
+    });
+
+    setIsViewModalOpen(false);
+  } catch (error) {
+    console.error('Error adding baby:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Failed to add baby',
+      text: error.response?.data?.message || 'Please try again',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleAddAppointment = async (appointmentData) => {
     try {
@@ -1024,15 +1033,6 @@ const handleRejectSubmit = async (e) => {
                 </th>
                 <th
                   className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider cursor-pointer hover:bg-green-100"
-                  onClick={() => handleSort('leave')}
-                >
-                  Discharge Status
-                  {sortConfig.key === 'leave' && (
-                    <span className="ml-2">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>
-                  )}
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider cursor-pointer hover:bg-green-100"
                  
                 >
                   Status
@@ -1069,17 +1069,6 @@ const handleRejectSubmit = async (e) => {
                           </span>
                         ))}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          born.leave === 'yes'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {born.leave}
-                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -1714,54 +1703,6 @@ const ViewDetails = ({
         </>
       )}
 
-      {/* Add Discharge button (visible only to doctors) */}
-      {(isPediatrition || isNurse) && (
-        <div className="mt-4">
-          {!showDischargeForm ? (
-            <button
-              onClick={() => setShowDischargeForm(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-            >
-              + Record Discharge
-            </button>
-          ) : (
-            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mt-2">
-              <h4 className="font-semibold text-green-800 mb-3">Record Discharge</h4>
-              <form onSubmit={handleDischargeSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Discharge Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={dischargeDate}
-                    onChange={(e) => setDischargeDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDischargeForm(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-blue-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Updating...' : 'Save Discharge'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-
       <div>
         <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
         <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1777,15 +1718,21 @@ const ViewDetails = ({
             {getNameFromId(born.healthCenterId, healthCenters)}
           </p>
           <p>
-            <span className="font-semibold">Discharge Date:</span> {formatDateToDMY(born.dateofvisit)}
+            <span className="font-semibold">Place Of Birth:</span> {born.delivery_place}
           </p>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Discharge Information</h3>
+        <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
           <p>
-            <span className="font-semibold">Delivery Place:</span> {born.delivery_place}
+            <span className="font-semibold">Discharge Date:</span> {formatDateToDMY(born.dateofvisit)}
           </p>
           {userRole === 'data_manager' || userRole === 'head_of_community_workers_at_helth_center' && (
               <p>
                 <span className="font-semibold">Visit Date:</span>{' '}
-                {formatDateToDMY(born.dateofvisit)}
+                {formatDateToDMY(born.dateofvisit) || "N/A"}
               </p>
             )}
         </div>
@@ -1807,33 +1754,6 @@ const ViewDetails = ({
           </p>
         </div>
       </div>
-
-      {/* Add Baby Section */}
-      {(isPediatrition || isNurse) && (
-        <div className="mt-4">
-          {!isAddingBaby ? (
-            <button
-              onClick={() => setIsAddingBaby(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-            >
-              <Plus size={18} />
-              Add New Baby
-            </button>
-          ) : (
-            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
-              <h4 className="font-semibold text-green-800 mb-3">Add New Baby</h4>
-              <AddBabyForm
-                bornId={born.id}
-                onAddBaby={(newBaby) => {
-                  onAddBaby(newBaby);
-                  setIsAddingBaby(false);
-                }}
-                onCancel={() => setIsAddingBaby(false)}
-              />
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Add Appointment Section */}
       {(isPediatrition || isNurse) && (
@@ -1944,53 +1864,33 @@ const ViewDetails = ({
 
                   {/* Appointments Section */}
                   <div className="mt-4">
-                    <h4 className="font-semibold text-green-800 mb-2">Appointments</h4>
-                    {baby.appoitment_feedback?.length > 0 ? (
-                      <div className="space-y-3">
-                        {baby.appoitment_feedback.map((feedback) => (
+                    <h4 className="font-semibold text-green-800 mb-2">Appointments Feedback</h4>
+                    {/* Appointment Feedback */}
+                  {baby.appoitment_feedback?.length > 0 ? (
+                    <div className="mt-3">
+                      <h4 className="font-semibold text-green-800 mb-2">Appointment Feedback</h4>
+                      <div className="bg-white p-2 rounded">
+                        {baby.appoitment_feedback.map((feedback, index) => (
                           <div
-                            key={`appointment-${feedback.id}`}
-                            className="bg-white p-3 rounded shadow"
+                            key={`feedback-${baby.id}-${index}`}
+                            className="mb-2 last:mb-0 bg-blue-50 p-2 rounded"
                           >
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
-                              <p>
-                                <span className="font-semibold">Date:</span>{' '}
-                                {new Date(feedback.appointment.date).toLocaleDateString()}
-                              </p>
-                              <p>
-                                <span className="font-semibold">Time:</span>{' '}
-                                {feedback.appointment.time}
-                              </p>
-                              <p>
-                                <span className="font-semibold">Purpose:</span>{' '}
-                                {feedback.appointment.purpose}
-                              </p>
-                              <p>
-                                <span className="font-semibold">Status:</span>{' '}
-                                {feedback.appointment.status}
-                              </p>
-                            </div>
-
-                            <div className="mt-2">
-                              <h5 className="font-semibold">Feedback:</h5>
-                              <div className="bg-blue-50 p-2 rounded">
-                                <p>
-                                  <span className="font-semibold">Weight:</span> {feedback.weight} g
-                                </p>
-                                <p>
-                                  <span className="font-semibold">Status:</span> {feedback.status}
-                                </p>
-                                <p>
-                                  <span className="font-semibold">Notes:</span> {feedback.feedback}
-                                </p>
-                              </div>
-                            </div>
+                            <p>
+                              <span className="font-semibold">Weight:</span> {feedback.weight} g
+                            </p>
+                            <p>
+                              <span className="font-semibold">Status:</span> {feedback.status}
+                            </p>
+                            <p>
+                              <span className="font-semibold">Comment:</span> {feedback.feedback}
+                            </p>
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-gray-500">No appointments scheduled</p>
-                    )}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">No feedback available</p>
+                  )}
                   </div>
                 </>
               )}
@@ -1998,6 +1898,36 @@ const ViewDetails = ({
           ))}
         </div>
       </div>
+
+      {/* Appointments Section */}
+      <div>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Appointments</h3>
+        {born.appointments?.length > 0 ? (
+          <div className="space-y-3">
+            {born.appointments.map((appointment, index) => (
+              <div
+                key={`appointment-${appointment.id || index}`}
+                className="bg-green-50 p-4 rounded-lg relative"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                  <p>
+                    <span className="font-semibold">Date:</span>{' '}
+                    {formatDateToDMY(appointment.date)}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Time:</span> {appointment.time}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Status:</span> {appointment.status}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">No appointments scheduled</p>
+        )}
+         </div>
 
       {/* Add visit form modal */}
       {isAddingVisit && (
@@ -2053,21 +1983,62 @@ const ViewDetails = ({
       </div>
       {/* Buttons for Prove and Reject */}
         
-        {/* Buttons for Prove and Reject */}
+        {/* Buttons for Approve and Reject */}
 {born.status === 'pending' ? (
-  userRole === 'head_of_community_workers_at_helth_center' && (
+  userRole === 'head_of_community_workers_at_helth_center' ? (
     <div className="mt-4 flex gap-4">
       <button
         onClick={() => handleUpdateStatus('approved')}
         className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
       >
-        Approved
+        Approve
       </button>
       <button
         onClick={() => setIsRejectModalOpen(true)}
         className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
       >
         Reject
+      </button>
+    </div>
+  ) : (
+    userRole === 'data_manager' && (
+      <div className="mt-4 bg-gray-50 p-4 rounded-lg">
+        <p>
+          <span className="font-semibold">Status:</span>{' '}
+          <span
+            className={`px-2 py-1 rounded-md text-white ${
+              born.status === 'approved'
+                ? 'bg-green-600'
+                : born.status === 'rejected'
+                ? 'bg-red-600'
+                : 'bg-gray-600'
+            }`}
+          >
+            {born.status}
+          </span>
+        </p>
+      </div>
+    )
+  )
+) : born.status === 'approved' ? (
+  userRole === 'head_of_community_workers_at_helth_center' && (
+    <div className="mt-4 flex gap-4">
+      <button
+        onClick={() => setIsRejectModalOpen(true)}
+        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+      >
+        Reject
+      </button>
+    </div>
+  )
+) : born.status === 'rejected' ? (
+  userRole === 'head_of_community_workers_at_helth_center' && (
+    <div className="mt-4 flex gap-4">
+      <button
+        onClick={() => handleUpdateStatus('approved')}
+        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+      >
+        Approve
       </button>
     </div>
   )
@@ -2474,10 +2445,10 @@ const EditForm = ({
             </select>
           </div>
           <div>
-            <label className="text-sm block font-medium text-gray-700 mb-1">Delivery place *</label>
+            <label className="text-sm block font-medium text-gray-700 mb-1">Place of Birth *</label>
             <select
               name="status"
-              value={formData.status}
+              value={formData.delivery_place}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
               required
@@ -2487,8 +2458,12 @@ const EditForm = ({
               <option value="hospitalized">Hospitalized</option>
             </select>
           </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date of Discharge *</label>
+            
+        </div>
+      </div>
+
+              <div>
+              <label className="text-lg font-medium text-green-700 mb-3">Date of Discharge</label>
               <input
                 type="date"
                 name="dateofDischarge"
@@ -2498,9 +2473,6 @@ const EditForm = ({
                 required
               />
             </div>
-        </div>
-      </div>
-
 
       <div>
         <h3 className="text-lg font-medium text-green-700 mb-3">Location</h3>
@@ -2563,7 +2535,7 @@ const EditForm = ({
       {/* Appointment Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Date *</label>
+              <label className="text-lg font-medium text-green-700 mb-3">Appointment Date</label>
               <input
                 type="date"
                 name="dateofvisit"
@@ -2585,6 +2557,8 @@ const EditForm = ({
               />
             </div>
           </div>
+
+          
 
       {!isEditMode && (
         <div>
@@ -3060,13 +3034,13 @@ const AddAppointmentForm = ({
   axiosInstance,
 }) => {
   const [formData, setFormData] = useState({
-    babyId: babyId,
-    bornId: bornId,
-    date: new Date().toISOString().split('T')[0],
-    time: '09:00',
-    purpose: '',
-    status: 'Scheduled',
-  });
+  babyId: babyId,
+  bornId: bornId,
+  date: new Date().toISOString().split('T')[0],
+  time: '09:00',
+  purpose: 'noted',
+  status: 'Scheduled', // Default value
+});
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -3075,20 +3049,24 @@ const AddAppointmentForm = ({
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await onAddAppointment(formData);
-    } catch (error) {
-      console.error('Error adding appointment:', error);
-      // Swal.fire({
-      //   icon: 'error',
-      //   title: 'Failed to add appointment',
-      //   text: error.response?.data?.message || 'Please try again',
-      // });
-    } finally {
-      setIsLoading(false);
+  e.preventDefault();
+  try {
+    if (!formData.date || !formData.time || !formData.purpose) {
+      throw new Error('All fields are required');
     }
-  };
+
+    await onAddAppointment(formData);
+  } catch (error) {
+    console.error('Error adding appointment:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Failed to add appointment',
+      text: error.message || 'Please try again',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="mt-4 p-4 bg-gray-50 rounded-lg">
@@ -3112,17 +3090,6 @@ const AddAppointmentForm = ({
               type="time"
               name="time"
               value={formData.time}
-              onChange={handleChange}
-              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-              required
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Purpose *</label>
-            <input
-              type="text"
-              name="purpose"
-              value={formData.purpose}
               onChange={handleChange}
               className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
               required
