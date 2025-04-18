@@ -433,13 +433,13 @@ export default function HealthCenterManagement() {
                         : 'Not assigned'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button
+                      {/* <button
                         className="text-green-600 hover:text-green-900"
                         onClick={() => handleViewHealthCenter(center)}
                         disabled={isLoading}
                       >
                         <Eye size={18} />
-                      </button>
+                      </button> */}
                       <button
                         className="text-red-600 hover:text-red-900"
                         onClick={() => handleDeleteHealthCenter(center.id)}

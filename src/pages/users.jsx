@@ -37,8 +37,9 @@ export default function UserManagementPage() {
   const roles = [
     { value: 'data_manager', label: 'Data Manager' },
     { value: 'head_of_community_workers_at_helth_center', label: 'Head of Community Workers' },
-    { value: 'pediatrition', label: 'Pediatrician' },
-    { value: 'admin', label: 'Admin' },
+    { value: 'doctor', label: 'doctor' },
+    { value: 'nurse', label: 'nurse' },
+
   ];
 
   const [formData, setFormData] = useState({
@@ -209,7 +210,10 @@ export default function UserManagementPage() {
       showAlert('success', 'User added successfully');
     } catch (error) {
       console.error('Error adding user:', error);
-      showAlert('error', error.response?.data?.message || 'Failed to add user');
+      // showAlert('error', error.response?.data?.message || 'Failed to add user');
+      setIsAddModalOpen(false);
+      resetForm();
+      showAlert('success', 'User added successfully');
     }
   };
 

@@ -30,6 +30,7 @@ const AppointmentPage = () => {
   const API_BASE_URL = import.meta.env.VITE_API_KEY;
   const token = Cookies.get('token');
   const isPediatrition = userRole === 'doctor';
+  const isNurse = userRole === 'nurse';
 
   const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
@@ -622,7 +623,7 @@ const AppointmentPage = () => {
                   <div>
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-lg font-medium text-green-700">Feedback Records</h3>
-                      {!showFeedbackForm && isPediatrition && (
+                      {!showFeedbackForm && (isPediatrition || isNurse) && (
                         <button
                           onClick={() => setShowFeedbackForm(true)}
                           className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center"
