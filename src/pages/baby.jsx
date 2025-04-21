@@ -340,70 +340,56 @@ const [rejectReason, setRejectReason] = useState('');
 
 
   const updateBorn = async () => {
-    if (!currentBorn?.id) return;
+  if (!currentBorn?.id) return;
 
-    try {
-      setIsLoading(true);
+  try {
+    setIsLoading(true);
 
-      // Prepare the data to send
-      const dataToSend = {
-        dateOfBirth: formData.dateOfBirth,
-        healthCenterId: formData.healthCenterId,
-        motherName: formData.motherName,
-        motherPhone: formData.motherPhone,
-        motherNationalId: formData.motherNationalId,
-        fatherNationalId: formData.fatherNationalId,
-        fatherName: formData.fatherName,
-        fatherPhone: formData.fatherPhone,
-        deliveryType: formData.deliveryType,
-        status: formData.status,
-        sector_id: formData.sector_id,
-        cell_id: formData.cell_id,
-        village_id: formData.village_id,
-        leave: formData.leave, // Make sure to include the leave status
-      };
+    // Prepare the data to send based on the provided structure
+    const dataToSend = {
+      dateOfBirth: formData.dateOfBirth,
+      healthCenterId: formData.healthCenterId,
+      motherName: formData.motherName,
+      motherPhone: formData.motherPhone,
+      fatherName: formData.fatherName,
+      fatherPhone: formData.fatherPhone,
+      deliveryType: formData.deliveryType,
+      delivery_place: formData.delivery_place,
+      sector_id: formData.sector_id,
+      cell_id: formData.cell_id,
+      village_id: formData.village_id,
+      leave: formData.leave,
+      dateofDischarge: formData.dateofDischarge,
+      dateofvisit: formData.dateofvisit,
+    };
 
-      console.log(dataToSend);
+    console.log('Updating born record with data:', dataToSend);
 
-      // Validate required fields
-      if (!dataToSend.motherName || !dataToSend.motherPhone) {
-        throw new Error('Mother name and phone are required');
-      }
+    // Send the update request to the backend
+    const response = await axiosInstance.put(`/borns/${currentBorn.id}`, dataToSend);
 
-      // Convert string IDs to numbers if needed
-      if (dataToSend.healthCenterId) {
-        dataToSend.healthCenterId = parseInt(dataToSend.healthCenterId);
-      }
-      if (dataToSend.sector_id) {
-        dataToSend.sector_id = parseInt(dataToSend.sector_id);
-      }
-      if (dataToSend.cell_id) {
-        dataToSend.cell_id = parseInt(dataToSend.cell_id);
-      }
-      if (dataToSend.village_id) {
-        dataToSend.village_id = parseInt(dataToSend.village_id);
-      }
+    if (response.status === 200) {
+      console.log('Born record updated successfully:', response.data);
 
-      const response = await axiosInstance.put(`/borns/${currentBorn.id}`, dataToSend);
-
-      if (response.status === 200 || response.status === 500) {
-        await fetchBorns();
-        setIsEditMode(false);
-        setIsViewModalOpen(false);
-        showAlert('success', 'Born record updated successfully');
-      }
-    } catch (err) {
-      console.error('Error updating born record:', err);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        'Failed to update born record (server error)';
-      showAlert('error', errorMessage);
-    } finally {
-      setIsLoading(false);
+      // Refresh the born records and close the modal
+      await fetchBorns();
+      setIsEditMode(false);
+      setIsViewModalOpen(false);
+      showAlert('success', 'Born record updated successfully');
+    } else {
+      console.error('Failed to update born record:', response);
+      showAlert('error', 'Failed to update born record');
     }
-  };
+  } catch (err) {
+    console.error('Error updating born record:', err);
+    showAlert(
+      'error',
+      err.response?.data?.message || err.message || 'Failed to update born record'
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const deleteBorn = async () => {
   if (!currentBorn?.id) return;
@@ -1855,7 +1841,7 @@ const ViewDetails = ({
                     {/* Appointment Feedback */}
                   {baby.appoitment_feedback?.length > 0 ? (
                     <div className="mt-3">
-                      <h4 className="font-semibold text-green-800 mb-2">Appointment Feedback</h4>
+                      <h4 className="font-semibold text-gray-800 mb-2">Feedback</h4>
                       <div className="bg-white p-2 rounded">
                         {baby.appoitment_feedback.map((feedback, index) => (
                           <div
@@ -1987,7 +1973,6 @@ const ViewDetails = ({
       </button>
     </div>
   ) : (
-    userRole === 'data_manager' || userRole === 'doctor' && (
       <div className="mt-4 bg-yellow-50 p-4 rounded-lg">
         <p>
           <span className="font-semibold">Status:</span>{' '}
@@ -2004,7 +1989,6 @@ const ViewDetails = ({
           </span>
         </p>
       </div>
-    )
   )
 ) : born.status === 'approved' ? (
   userRole === 'head_of_community_workers_at_helth_center' && (
