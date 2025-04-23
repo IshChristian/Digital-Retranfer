@@ -1633,56 +1633,10 @@ const ViewDetails = ({
         </div>
       </div>
 
-      {/* Visit Section - Now inline instead of modal */}
-      {userRole === 'data_manager' && (
-        <>
-          {!isAddingVisit ? (
-            <button
-              onClick={() => setIsAddingVisit(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-            >
-              Schedule Visit
-            </button>
-          ) : (
-            <div className="md:col-span-2 bg-white p-4 rounded-lg shadow-md border border-gray-200">
-              <h4 className="font-semibold text-green-800 mb-3">Schedule Visit</h4>
-              <form onSubmit={handleVisitSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Visit Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={visitDate}
-                    onChange={(e) => setVisitDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingVisit(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Saving...' : 'Save Visit'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </>
-      )}
+      
 
       <div>
-        <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Healthcenter Information</h3>
         <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
           <p>
             <span className="font-semibold">Date of Birth:</span>{' '}
@@ -1690,10 +1644,6 @@ const ViewDetails = ({
           </p>
           <p>
             <span className="font-semibold">Delivery Type:</span> {born.deliveryType}
-          </p>
-          <p>
-            <span className="font-semibold">Health Center:</span>{' '}
-            {getNameFromId(born.healthCenterId, healthCenters)}
           </p>
           <p>
             <span className="font-semibold">Place Of Birth:</span> {born.delivery_place}
@@ -1707,6 +1657,11 @@ const ViewDetails = ({
           <p>
             <span className="font-semibold">Discharge Date:</span> {formatDateToDMY(born.dateofvisit)}
           </p>
+          
+          <p>
+            <span className="font-semibold">Health Center:</span>{' '}
+            {getNameFromId(born.healthCenterId, healthCenters)}
+          </p>
           <p>
             <span className="font-semibold">Sector:</span> {' '} 
             {getNameFromId(born.sector_id, sectors)}
@@ -1719,12 +1674,10 @@ const ViewDetails = ({
             <span className="font-semibold">Village:</span>{' '}
             {getNameFromId(born.village_id, villages, sectors)}
           </p>
-          {userRole === 'data_manager' || userRole === 'head_of_community_workers_at_helth_center' && (
-              <p>
-                <span className="font-semibold">Visit Date:</span>{' '}
-                {formatDateToDMY(born.dateofvisit) || "N/A"}
-              </p>
-            )}
+          <p>
+            <span className="font-semibold">Visit Date:</span>{' '}
+            {formatDateToDMY(born.dateofvisit) || "N/A"}
+          </p>
         </div>
       </div>
 
@@ -2035,6 +1988,54 @@ const ViewDetails = ({
     )}
   </div>
 )}
+
+{/* Visit Section - Now inline instead of modal */}
+      {userRole === 'data_manager' && (
+        <>
+          {!isAddingVisit ? (
+            <button
+              onClick={() => setIsAddingVisit(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              Date of First home Visit
+            </button>
+          ) : (
+            <div className="md:col-span-2 bg-white p-4 rounded-lg shadow-md border border-gray-200">
+              <h4 className="font-semibold text-green-800 mb-3">Schedule Visit</h4>
+              <form onSubmit={handleVisitSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Visit Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={visitDate}
+                    onChange={(e) => setVisitDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingVisit(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Saving...' : 'Save Visit'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </>
+      )}
 
         {/* Reject Modal */}
         {isRejectModalOpen && (
@@ -2425,8 +2426,9 @@ const EditForm = ({
   >
     <option value="">Select Place of Birth</option>
     <option value="home">Home</option>
-    <option value="referred">Referred</option>
-    <option value="hospitalized">Hospitalized</option>
+    <option value="referred">in the way to hath center</option>
+    <option value="hospitalized">heath center</option>
+    <option value="hospitalized">kabutare district hospital</option>
   </select>
 </div>
             
