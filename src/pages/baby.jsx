@@ -1833,7 +1833,7 @@ const ViewDetails = ({
             <h3 className="text-lg font-medium mb-4">Schedule Visit</h3>
             <form onSubmit={handleVisitSubmit}>
               <div className="mb-4">
-                <label className="block mb-2">Visit Date</label>
+                <label className="block mb-2">Visit Dates</label>
                 <input
                   type="date"
                   className="w-full p-2 border rounded"
@@ -1842,6 +1842,17 @@ const ViewDetails = ({
                   required
                 />
               </div>
+              <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Comment *
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  ></textarea>
+                </div>
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
@@ -2014,7 +2025,7 @@ const ViewDetails = ({
               onClick={() => setIsAddingVisit(true)}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
-              Date of First home Visit
+              Date of First home Visits
             </button>
           ) : (
             <div className="md:col-span-2 bg-white p-4 rounded-lg shadow-md border border-gray-200">
@@ -2022,7 +2033,7 @@ const ViewDetails = ({
               <form onSubmit={handleVisitSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Visit Date *
+                    Visit Dates *
                   </label>
                   <input
                     type="date"
@@ -2032,18 +2043,7 @@ const ViewDetails = ({
                     required
                   />
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Comment *
-                  </label>
-                  <textarea
-                   type="date"
-                    value={Comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  ></textarea>
-                </div>
+                
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
@@ -2715,7 +2715,7 @@ const EditForm = ({
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Visit Date
+                        Visit Dates
                       </label>
                       <input
                         type="date"
