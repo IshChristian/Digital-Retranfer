@@ -66,6 +66,7 @@ const [rejectReason, setRejectReason] = useState('');
   cell_id: '',
   village_id: '',
   dateofvisit: '',
+  comment: '',
   dateofDischarge: '',
   appointmentTime: '09:00', // Default value
   purpose: 'Initial Visit', // Default value
@@ -1502,6 +1503,7 @@ const ViewDetails = ({
   const [leaveStatus, setLeaveStatus] = useState('no');
   const [showDischargeForm, setShowDischargeForm] = useState(false);
   const [dischargeDate, setDischargeDate] = useState(born?.dateofDischarge || '');
+  const [comment, setComment] = useState('');
 
   // Add these handler functions
   const handleVisitSubmit = async (e) => {
@@ -1513,6 +1515,7 @@ const ViewDetails = ({
       const dataToSend = {
         healthCenterId: born.healthCenterId, // Changed from currentBorn to born
         dateofvisit: visitDate,
+        comment: comment,
       };
 
       // Make the API call using the born prop
@@ -1655,7 +1658,7 @@ const ViewDetails = ({
         <h3 className="text-lg font-medium text-green-700 mb-3">Discharge Information</h3>
         <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
           <p>
-            <span className="font-semibold">Discharge Date:</span> {formatDateToDMY(born.dateofvisit)}
+            <span className="font-semibold">Discharge Date:</span> {formatDateToDMY(born.dateofDischarge)}
           </p>
           
           <p>
@@ -1674,41 +1677,12 @@ const ViewDetails = ({
             <span className="font-semibold">Village:</span>{' '}
             {getNameFromId(born.village_id, villages, sectors)}
           </p>
-          <p>
-            <span className="font-semibold">Visit Date:</span>{' '}
-            {formatDateToDMY(born.dateofvisit) || "N/A"}
-          </p>
+         
         </div>
       </div>
 
       {/* Add Appointment Section */}
-      {(isPediatrition || isNurse) && (
-        <div className="mt-4">
-          {!isAddingAppointment ? (
-            <button
-              onClick={() => setIsAddingAppointment(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-            >
-              <Plus size={18} />
-              Add New Appointment
-            </button>
-          ) : (
-            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
-              <h4 className="font-semibold text-green-800 mb-3">Add New Appointment</h4>
-              <AddAppointmentForm
-                bornId={born.id}
-                babyId={born.babies?.[0]?.id}
-                onAddAppointment={async (newAppointment) => {
-                  await onAddAppointment(newAppointment);
-                  setIsAddingAppointment(false);
-                }}
-                onCancel={() => setIsAddingAppointment(false)}
-                axiosInstance={axiosInstance}
-              />
-            </div>
-          )}
-        </div>
-      )}
+      
 
       {/* Babies Section */}
       <div>
@@ -1841,9 +1815,6 @@ const ViewDetails = ({
                     {formatDateToDMY(appointment.date)}
                   </p>
                   <p>
-                    <span className="font-semibold">Time:</span> {appointment.time}
-                  </p>
-                  <p>
                     <span className="font-semibold">Status:</span> {appointment.status}
                   </p>
                 </div>
@@ -1890,7 +1861,26 @@ const ViewDetails = ({
 
       {/* Add discharge form modal */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+       {userRole === 'data_manager' && (  
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-lg font-medium text-green-700 mb-3">Date of first visit</h3>
+          <div className="bg-green-50 p-4 rounded">
+              <p>
+              <span className="font-semibold">Visit Date:</span>{' '}
+              {formatDateToDMY(born.dateofvisit) || "N/A"}
+            </p>
+            <p className="mb-2">
+              <span className="font-semibold">Comment:</span> {born.comment || 'N/A'}{' '}
+            </p>
+
+          </div>
+        </div>
+      </div>
+        )}
+      
+
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h3 className="text-lg font-medium text-green-700 mb-3">Recorded By</h3>
           <div className="bg-green-50 p-4 rounded">
@@ -1907,6 +1897,7 @@ const ViewDetails = ({
           </div>
         </div>
       </div>
+        
         
         {/* Buttons for Approve and Reject */}
 {born.status === 'pending' ? (
@@ -1988,7 +1979,33 @@ const ViewDetails = ({
     )}
   </div>
 )}
-
+  {(isPediatrition || isNurse) && (
+        <div className="mt-4">
+          {!isAddingAppointment ? (
+            <button
+              onClick={() => setIsAddingAppointment(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              <Plus size={18} />
+              Add New Appointment
+            </button>
+          ) : (
+            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+              <h4 className="font-semibold text-green-800 mb-3">Add New Appointment</h4>
+              <AddAppointmentForm
+                bornId={born.id}
+                babyId={born.babies?.[0]?.id}
+                onAddAppointment={async (newAppointment) => {
+                  await onAddAppointment(newAppointment);
+                  setIsAddingAppointment(false);
+                }}
+                onCancel={() => setIsAddingAppointment(false)}
+                axiosInstance={axiosInstance}
+              />
+            </div>
+          )}
+        </div>
+      )}
 {/* Visit Section - Now inline instead of modal */}
       {userRole === 'data_manager' && (
         <>
@@ -2014,6 +2031,18 @@ const ViewDetails = ({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
                   />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Comment *
+                  </label>
+                  <textarea
+                   type="date"
+                    value={Comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  ></textarea>
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
@@ -2372,7 +2401,7 @@ const EditForm = ({
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Healthcenter Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
@@ -2399,22 +2428,7 @@ const EditForm = ({
               <option value="Assisted">Assisted</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Health Center *</label>
-            <select
-              name="healthCenterId"
-              value={formData.healthCenterId}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              required
-            >
-              {healthCenters.map((hc, index) => (
-                <option key={`hc-${hc.id}-${index}`} value={hc.id}>
-                  {hc.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          
           <div>
   <label className="text-sm block font-medium text-gray-700 mb-1">Place of Birth *</label>
   <select
@@ -2426,9 +2440,9 @@ const EditForm = ({
   >
     <option value="">Select Place of Birth</option>
     <option value="home">Home</option>
-    <option value="referred">in the way to hath center</option>
-    <option value="hospitalized">heath center</option>
-    <option value="hospitalized">kabutare district hospital</option>
+    <option value="in the way to hath center">in the way to hath center</option>
+    <option value="heath center">heath center</option>
+    <option value="kabutare district hospital">kabutare district hospital</option>
   </select>
 </div>
             
@@ -2446,6 +2460,22 @@ const EditForm = ({
                 required
               />
             </div>
+            <div>
+            <label className="text-lg font-medium text-green-700 mb-3">Health Center *</label>
+            <select
+              name="healthCenterId"
+              value={formData.healthCenterId}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            >
+              {healthCenters.map((hc, index) => (
+                <option key={`hc-${hc.id}-${index}`} value={hc.id}>
+                  {hc.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
       <div>
         <h3 className="text-lg font-medium text-green-700 mb-3">Location</h3>
@@ -2506,30 +2536,7 @@ const EditForm = ({
       </div>
 
       {/* Appointment Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-lg font-medium text-green-700 mb-3">Appointment Date</label>
-              <input
-                type="date"
-                name="dateofvisit"
-                value={formData.dateofvisit}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Time *</label>
-              <input
-                type="time"
-                name="appointmentTime"
-                value={formData.appointmentTime}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-          </div>
+          
 
           
 
@@ -2687,6 +2694,20 @@ const EditForm = ({
                   <p className="text-gray-500">No medications recorded</p>
                 )}
               </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="text-sm font-medium text-green-700 mb-3">Appointment Date</label>
+              <input
+                type="date"
+                name="dateofvisit"
+                value={formData.dateofvisit}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                required
+              />
+            </div>
+          </div>
+              
               {/* Add role-specific fields */}
               {userRole === 'data_manager' && (
                 <div>
@@ -2708,6 +2729,7 @@ const EditForm = ({
                 </div>
               )}
 
+              
               {userRole === 'pediatrition' && (
                 <div>
                   <h3 className="text-lg font-medium text-green-700 mb-3">Discharge Information</h3>
