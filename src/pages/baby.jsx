@@ -1875,7 +1875,7 @@ const ViewDetails = ({
        {userRole === 'data_manager' && (  
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-lg font-medium text-green-700 mb-3">Date of first visit</h3>
+          <h3 className="text-lg font-medium text-green-700 mb-3">Date of first home visit</h3>
           <div className="bg-green-50 p-4 rounded">
               <p>
               <span className="font-semibold">Visit Date:</span>{' '}
@@ -2440,7 +2440,7 @@ const EditForm = ({
   >
     <option value="">Select Place of Birth</option>
     <option value="home">Home</option>
-    <option value="in the way to hath center">in the way to hath center</option>
+    <option value="in the way to health center">in the way to health center</option>
     <option value="heath center">heath center</option>
     <option value="kabutare district hospital">kabutare district hospital</option>
   </select>
