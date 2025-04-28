@@ -1680,8 +1680,6 @@ const ViewDetails = ({
          
         </div>
       </div>
-
-      {/* Add Appointment Section */}
       
 
       {/* Babies Section */}
@@ -2264,7 +2262,7 @@ const EditBabyForm = ({ baby, onUpdate, onCancel, isLoading }) => {
                   </td>
                   <td className="py-2 px-3">
                     <input
-                      type="text"
+                      type="number"
                       name="dose"
                       value={med.dose}
                       onChange={(e) => handleMedicationChange(index, e)}
