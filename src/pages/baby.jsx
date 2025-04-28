@@ -1639,7 +1639,7 @@ const ViewDetails = ({
       
 
       <div>
-        <h3 className="text-lg font-medium text-green-700 mb-3">Healthcenter Information</h3>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
         <div className="bg-green-50 p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
           <p>
             <span className="font-semibold">Date of Birth:</span>{' '}
@@ -2401,7 +2401,7 @@ const EditForm = ({
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-green-700 mb-3">Healthcenter Information</h3>
+        <h3 className="text-lg font-medium text-green-700 mb-3">Delivery Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
